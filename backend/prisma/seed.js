@@ -14,31 +14,64 @@ const prisma = new PrismaClient({
     adapter,
 });
 
+function getAdminSeedConfig() {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    const email = (process.env.ADMIN_EMAIL || 'admin@nazabarber.com').trim().toLowerCase();
+    const passwordFromEnv = process.env.ADMIN_PASSWORD;
+    const password = passwordFromEnv && passwordFromEnv.trim().length > 0
+        ? passwordFromEnv
+        : 'admin12345';
+
+    if (isProduction) {
+        if (!passwordFromEnv || passwordFromEnv.trim().length === 0) {
+            throw new Error(
+                'ADMIN_PASSWORD es obligatoria en producción para ejecutar seed de admin.'
+            );
+        }
+
+        if (passwordFromEnv.length < 12) {
+            throw new Error('ADMIN_PASSWORD debe tener al menos 12 caracteres en producción.');
+        }
+    }
+
+    return {
+        email,
+        password,
+        nombre: process.env.ADMIN_NOMBRE || 'Naza Barber',
+        telefono: process.env.ADMIN_TELEFONO || '3430000000',
+        instagram: process.env.ADMIN_INSTAGRAM || '@nazabarber',
+        bio: process.env.ADMIN_BIO || 'Barbería profesional. Cortes modernos, perfilados y estilo urbano.',
+        whatsapp: process.env.ADMIN_WHATSAPP || '3430000000',
+    };
+}
+
 async function main() {
-    const passwordHash = await bcrypt.hash('admin123', 10);
+    const adminConfig = getAdminSeedConfig();
+    const passwordHash = await bcrypt.hash(adminConfig.password, 10);
 
     const admin = await prisma.usuario.upsert({
         where: {
-            email: 'admin@nazabarber.com'
+            email: adminConfig.email
         },
         update: {
-            nombre: 'Naza Barber',
+            nombre: adminConfig.nombre,
             passwordHash,
-            telefono: '3430000000',
-            instagram: '@nazabarber',
+            telefono: adminConfig.telefono,
+            instagram: adminConfig.instagram,
             rol: 'admin',
-            bio: 'Barbería profesional. Cortes modernos, perfilados y estilo urbano.',
-            whatsapp: '3430000000'
+            bio: adminConfig.bio,
+            whatsapp: adminConfig.whatsapp
         },
         create: {
-            nombre: 'Naza Barber',
-            email: 'admin@nazabarber.com',
+            nombre: adminConfig.nombre,
+            email: adminConfig.email,
             passwordHash,
-            telefono: '3430000000',
-            instagram: '@nazabarber',
+            telefono: adminConfig.telefono,
+            instagram: adminConfig.instagram,
             rol: 'admin',
-            bio: 'Barbería profesional. Cortes modernos, perfilados y estilo urbano.',
-            whatsapp: '3430000000'
+            bio: adminConfig.bio,
+            whatsapp: adminConfig.whatsapp
         }
     });
 
