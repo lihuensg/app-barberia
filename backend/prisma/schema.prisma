@@ -1,0 +1,142 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RolUsuario {
+  cliente
+  admin
+}
+
+enum EstadoTurno {
+  disponible
+  reservado
+  cortado
+  cancelado
+}
+
+model Usuario {
+  id            Int          @id @default(autoincrement())
+  nombre        String
+  email         String       @unique
+  passwordHash  String       @map("password_hash")
+  telefono      String?
+  instagram     String?
+  foto          String?
+  photoPublicId String?
+  rol           RolUsuario   @default(cliente)
+  bio           String?
+  whatsapp      String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  turnos              Turno[]
+  posts               Post[]
+  comentarios         Comentario[]
+  likes               Like[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("usuarios")
+}
+
+model Turno {
+  id              Int          @id @default(autoincrement())
+  fecha           DateTime     @db.Date
+  hora            DateTime     @db.Time
+  estado          EstadoTurno  @default(disponible)
+
+  usuarioId       Int?         @map("usuario_id")
+  usuario         Usuario?     @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  anonimoNombre   String?      @map("anonimo_nombre")
+  anonimoEmail    String?      @map("anonimo_email")
+  anonimoTelefono String?      @map("anonimo_telefono")
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@unique([fecha, hora])
+  @@index([fecha])
+  @@index([estado])
+  @@map("turnos")
+}
+
+model Post {
+  id           Int          @id @default(autoincrement())
+  imagen       String
+  imagePublicId String?
+  descripcion  String
+  autorId      Int          @map("autor_id")
+  autor        Usuario      @relation(fields: [autorId], references: [id], onDelete: Cascade)
+  deletedAt    DateTime?
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  comentarios  Comentario[]
+  likes        Like[]
+
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Comentario {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  autorId   Int      @map("autor_id")
+  texto     String
+  deletedAt DateTime?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  autor     Usuario  @relation(fields: [autorId], references: [id], onDelete: Cascade)
+
+  @@map("comentarios")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  entity    String
+  entityId  Int?
+  status    String   @default("SUCCESS")
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Like {
+  postId    Int @map("post_id")
+  usuarioId Int @map("usuario_id")
+
+  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([postId, usuarioId])
+  @@map("likes")
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  usuarioId Int       @map("usuario_id")
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  tokenHash String    @map("token_hash") // Hash del token (para seguridad)
+  
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at") // Null si no se ha usado, fecha si se ha usado
+  
+  createdAt DateTime  @default(now()) @map("created_at")
+  
+  @@index([usuarioId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}

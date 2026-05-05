@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+yarn.lock
+
+# Environment variables (NUNCA commitear .env)
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# Prisma
+/src/generated/prisma
+.prisma
+
+# Secrets y certificados
+*.pem
+*.key
+*.crt
+*.cert
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Deploy
+.vercel/
+.render/

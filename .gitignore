@@ -1,0 +1,69 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# builds
+dist/
+build/
+.vite/
+**/dist/
+**/build/
+**/.vite/
+
+# env files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.test
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# coverage
+coverage/
+**/coverage/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# deployment
+.vercel/
+.render/
+
+# cache/temp
+.cache/
+.tmp/
+temp/
+
+# uploads/local storage
+uploads/
+public/uploads/
+backend/public/uploads/
+**/uploads/
+
+# local db
+*.db
+*.sqlite
+*.sqlite3
+
+# secrets / keys
+*.pem
+*.key
+*.crt
+
+# archives
+*.zip
+*.rar
+*.7z
