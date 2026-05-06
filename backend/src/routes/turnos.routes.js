@@ -13,6 +13,9 @@ const {
 	historialQuerySchema,
 	cancelarClienteParamsSchema,
 	cancelarClienteBodySchema,
+	cancelarAdminParamsSchema,
+	cancelarAdminBodySchema,
+	cancelacionesAdminQuerySchema,
 	adminTurnosQuerySchema,
 	crearTurnoBodySchema,
 	asignarTurnoBodySchema,
@@ -27,9 +30,11 @@ router.post('/anonimo', validateBody(reservarAnonimoBodySchema), turnosControlle
 router.post('/cliente', authMiddleware, validateBody(reservarClienteBodySchema), turnosController.reservarCliente);
 router.get('/historial', authMiddleware, validateQuery(historialQuerySchema), turnosController.historialCliente);
 router.put('/cancelarCliente/:id', authMiddleware, validateParams(cancelarClienteParamsSchema), validateBody(cancelarClienteBodySchema), turnosController.cancelarCliente);
+router.put('/admin/cancelar/:id', authMiddleware, adminMiddleware, validateParams(cancelarAdminParamsSchema), validateBody(cancelarAdminBodySchema), turnosController.cancelarAdmin);
 
 router.get('/admin', authMiddleware, adminMiddleware, validateQuery(adminTurnosQuerySchema), turnosController.getAdminTurnos);
 router.get('/admin/metrics', authMiddleware, adminMiddleware, turnosController.getMetrics);
+router.get('/admin/cancelaciones', authMiddleware, adminMiddleware, validateQuery(cancelacionesAdminQuerySchema), turnosController.getCancelacionesAdmin);
 router.post('/crear', authMiddleware, adminMiddleware, validateBody(crearTurnoBodySchema), turnosController.crearTurno);
 router.post('/admin/asignar', authMiddleware, adminMiddleware, validateBody(asignarTurnoBodySchema), turnosController.asignarTurnoAdmin);
 router.post('/generar-semana', authMiddleware, adminGenerarSemanaLimiter, adminMiddleware, validateBody(generarSemanaBodySchema), turnosController.generarSemana);

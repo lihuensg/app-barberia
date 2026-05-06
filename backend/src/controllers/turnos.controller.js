@@ -69,7 +69,7 @@ async function historialCliente(req, res) {
 
 async function cancelarCliente(req, res) {
     try {
-        const { turno, previousEstado } = await turnosService.cancelarCliente(req.usuario.id, req.params.id);
+        const { turno, previousEstado } = await turnosService.cancelarCliente(req.usuario.id, req.params.id, req.body);
 
         try {
             const ctx = getAuditContext(req);
@@ -82,19 +82,59 @@ async function cancelarCliente(req, res) {
                 ip: ctx.ip,
                 userAgent: ctx.userAgent,
                 metadata: {
+                    turnoId: turno.id,
+                    fechaHoraTurno: `${turno.fecha}T${turno.hora}:00.000Z`,
+                    canceladoPor: 'CLIENTE',
+                    liberado: true,
                     estadoAnterior: previousEstado,
-                    estadoNuevo: 'cancelado'
+                    estadoNuevo: 'disponible'
                 }
             });
         } catch (e) { /* no-op */ }
 
         res.json({
-            message: 'Turno cancelado correctamente',
+            message: 'Turno cancelado correctamente. El horario vuelve a estar disponible.',
             turno
         });
     } catch (error) {
         res.status(error.status || 500).json({
             message: error.message || 'Error al cancelar turno'
+        });
+    }
+}
+
+async function cancelarAdmin(req, res) {
+    try {
+        const { turno, previousEstado } = await turnosService.cancelarAdmin(req.params.id, req.body);
+
+        try {
+            const ctx = getAuditContext(req);
+            void auditLog({
+                userId: req.usuario?.id,
+                action: 'ADMIN_CANCELO_TURNO',
+                entity: 'Turno',
+                entityId: turno.id,
+                status: 'SUCCESS',
+                ip: ctx.ip,
+                userAgent: ctx.userAgent,
+                metadata: {
+                    turnoId: turno.id,
+                    fechaHoraTurno: `${turno.fecha}T${turno.hora}:00.000Z`,
+                    canceladoPor: 'ADMIN',
+                    liberado: true,
+                    estadoAnterior: previousEstado,
+                    estadoNuevo: 'disponible'
+                }
+            });
+        } catch (e) { /* no-op */ }
+
+        res.json({
+            message: 'Reserva cancelada correctamente. El horario vuelve a estar disponible.',
+            turno,
+        });
+    } catch (error) {
+        res.status(error.status || 500).json({
+            message: error.message || 'Error al cancelar reserva',
         });
     }
 }
@@ -114,6 +154,15 @@ async function getMetrics(req, res) {
         res.json(metrics);
     } catch (error) {
         res.status(error.status || 500).json({ message: error.message || 'Error al obtener métricas' });
+    }
+}
+
+async function getCancelacionesAdmin(req, res) {
+    try {
+        const cancelaciones = await turnosService.getCancelacionesAdmin(req.query);
+        res.json(cancelaciones);
+    } catch (error) {
+        res.status(error.status || 500).json({ message: error.message || 'Error al listar cancelaciones' });
     }
 }
 
@@ -253,8 +302,10 @@ module.exports = {
     reservarCliente,
     historialCliente,
     cancelarCliente,
+    cancelarAdmin,
     getAdminTurnos,
     getMetrics,
+    getCancelacionesAdmin,
     crearTurno,
     asignarTurnoAdmin,
     generarSemana,

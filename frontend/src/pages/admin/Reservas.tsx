@@ -5,11 +5,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListTurnosAdmin,
   useMarcarCortado,
-  useCancelarCliente,
   getListTurnosAdminQueryKey,
   getGetAdminMetricsQueryKey,
   type Turno,
 } from "@workspace/api-client-react";
+import { useCancelarReservaAdmin } from "@workspace/api-client-react";
 import { Glass } from "@/components/Glass";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -88,14 +88,14 @@ export default function AdminReservas() {
     },
   });
 
-  const cancelarMut = useCancelarCliente({
+  const cancelarMut = useCancelarReservaAdmin({
     mutation: {
-      onSuccess: () => {
-        toast.success("Reserva cancelada");
+      onSuccess: (response: any) => {
+        toast.success(response?.message ?? "Reserva cancelada correctamente. El horario vuelve a estar disponible.");
         setCancelar(null);
         invalidate();
       },
-      onError: () => toast.error("No pudimos cancelar"),
+      onError: (error: any) => toast.error(error?.data?.message ?? "No pudimos cancelar"),
     },
   });
 

@@ -63,6 +63,26 @@ model Turno {
   @@map("turnos")
 }
 
+model TurnoCancelacion {
+  id              Int      @id @default(autoincrement())
+  turnoId         Int      @map("turno_id")
+  usuarioId       Int?     @map("usuario_id")
+  nombreCliente   String?  @map("nombre_cliente")
+  emailCliente    String?  @map("email_cliente")
+  telefonoCliente String?  @map("telefono_cliente")
+  fechaHoraTurno  DateTime @map("fecha_hora_turno")
+  canceladoEn     DateTime @default(now()) @map("cancelado_en")
+  canceladoPor    String   @map("cancelado_por")
+  motivo          String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([turnoId])
+  @@index([usuarioId])
+  @@index([canceladoEn])
+  @@index([fechaHoraTurno])
+  @@map("turno_cancelaciones")
+}
+
 model Post {
   id           Int          @id @default(autoincrement())
   imagen       String

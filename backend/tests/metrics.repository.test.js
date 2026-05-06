@@ -5,6 +5,9 @@ jest.mock('../src/config/prisma', () => ({
         count: jest.fn(),
         findMany: jest.fn(),
     },
+    turnoCancelacion: {
+        count: jest.fn(),
+    },
     usuario: {
         count: jest.fn(),
     },
@@ -29,17 +32,19 @@ describe('repositorio.getMetrics', () => {
             .mockResolvedValueOnce(12) // availableNow
             .mockResolvedValueOnce(8)  // upcomingReserved
             .mockResolvedValueOnce(2)  // cutToday
-            .mockResolvedValueOnce(1)  // cancelledToday
             .mockResolvedValueOnce(10) // availableToday
             .mockResolvedValueOnce(7)  // reservedToday
             .mockResolvedValueOnce(18) // availableWeek
             .mockResolvedValueOnce(11) // reservedWeek
-            .mockResolvedValueOnce(3)  // cancelledWeek
             .mockResolvedValueOnce(52) // availableMonth
             .mockResolvedValueOnce(31) // reservedMonth
-            .mockResolvedValueOnce(7)  // cancelledMonth
             .mockResolvedValueOnce(6)  // cutWeek
             .mockResolvedValueOnce(4); // cutMonth
+
+        prisma.turnoCancelacion.count
+            .mockResolvedValueOnce(1) // cancelledToday
+            .mockResolvedValueOnce(3) // cancelledWeek
+            .mockResolvedValueOnce(7); // cancelledMonth
 
         prisma.usuario.count.mockResolvedValueOnce(150);
         prisma.post.count.mockResolvedValueOnce(3);
@@ -73,13 +78,6 @@ describe('repositorio.getMetrics', () => {
                 },
             }),
             expect.objectContaining({
-                estado: 'cancelado',
-                fecha: {
-                    gte: new Date('2026-05-04T00:00:00.000Z'),
-                    lte: new Date('2026-05-04T23:59:59.999Z'),
-                },
-            }),
-            expect.objectContaining({
                 estado: 'cortado',
                 fecha: {
                     gte: new Date('2026-05-04T00:00:00.000Z'),
@@ -87,26 +85,34 @@ describe('repositorio.getMetrics', () => {
                 },
             }),
             expect.objectContaining({
-                estado: 'cancelado',
-                fecha: {
-                    gte: new Date('2026-05-04T00:00:00.000Z'),
-                    lte: new Date('2026-05-10T23:59:59.999Z'),
-                },
-            }),
-            expect.objectContaining({
                 estado: 'cortado',
-                fecha: {
-                    gte: new Date('2026-05-01T00:00:00.000Z'),
-                    lte: new Date('2026-05-31T23:59:59.999Z'),
-                },
-            }),
-            expect.objectContaining({
-                estado: 'cancelado',
                 fecha: {
                     gte: new Date('2026-05-01T00:00:00.000Z'),
                     lte: new Date('2026-05-31T23:59:59.999Z'),
                 },
             }),
         ]));
+
+        const cancellationCountCalls = prisma.turnoCancelacion.count.mock.calls.map(([args]) => args.where);
+        expect(cancellationCountCalls).toEqual([
+            {
+                canceladoEn: {
+                    gte: new Date('2026-05-04T00:00:00.000Z'),
+                    lte: new Date('2026-05-04T23:59:59.999Z'),
+                },
+            },
+            {
+                canceladoEn: {
+                    gte: new Date('2026-05-04T00:00:00.000Z'),
+                    lte: new Date('2026-05-10T23:59:59.999Z'),
+                },
+            },
+            {
+                canceladoEn: {
+                    gte: new Date('2026-05-01T00:00:00.000Z'),
+                    lte: new Date('2026-05-31T23:59:59.999Z'),
+                },
+            },
+        ]);
     });
 });

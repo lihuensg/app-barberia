@@ -41,6 +41,23 @@ const cancelarClienteBodySchema = z.object({
     motivo: z.string().trim().max(300, 'Motivo no puede superar 300 caracteres').optional(),
 }).strict();
 
+const cancelarAdminParamsSchema = turnoIdParamSchema;
+
+const cancelarAdminBodySchema = z.object({
+    motivo: z.string().trim().max(300, 'Motivo no puede superar 300 caracteres').optional(),
+}).strict();
+
+const canceladoPorEnum = z.enum(['CLIENTE', 'ADMIN']);
+
+const cancelacionesAdminQuerySchema = z.object({
+    fechaDesde: z.string().trim().optional(),
+    fechaHasta: z.string().trim().optional(),
+    cliente: z.string().trim().max(80, 'cliente no puede superar 80 caracteres').optional(),
+    canceladoPor: canceladoPorEnum.optional(),
+    page: positiveInt.max(100000).default(1),
+    limit: positiveInt.max(500, 'limit máximo: 500').default(100),
+}).strip();
+
 const adminTurnosQuerySchema = z.object({
     estado: estadoEnum.optional(),
     fecha: z.string().trim().optional(),
@@ -88,6 +105,9 @@ module.exports = {
     historialQuerySchema,
     cancelarClienteParamsSchema,
     cancelarClienteBodySchema,
+    cancelarAdminParamsSchema,
+    cancelarAdminBodySchema,
+    cancelacionesAdminQuerySchema,
     adminTurnosQuerySchema,
     crearTurnoBodySchema,
     asignarTurnoBodySchema,

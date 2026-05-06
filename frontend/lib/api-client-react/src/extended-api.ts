@@ -125,6 +125,45 @@ export const useDeletePostImage = (options: {
 };
 
 // ============================================================================
+// Admin Cancel Reservation
+// ============================================================================
+
+export interface CancelarReservaAdminResponse {
+  message: string;
+  turno: any;
+}
+
+export const cancelarReservaAdmin = async (
+  turnoId: number,
+  payload?: { motivo?: string },
+  options?: RequestInit,
+): Promise<CancelarReservaAdminResponse> => {
+  return customFetch<CancelarReservaAdminResponse>(
+    `/api/turnos/admin/cancelar/${turnoId}`,
+    {
+      ...options,
+      method: "PUT",
+      body: JSON.stringify(payload ?? {}),
+      headers: {
+        "Content-Type": "application/json",
+        ...(options?.headers || {}),
+      },
+    }
+  );
+};
+
+export const useCancelarReservaAdmin = (options: {
+  mutation?: any;
+  request?: any;
+} = {}) => {
+  return useMutation({
+    mutationFn: (vars: { id: number; motivo?: string }) =>
+      cancelarReservaAdmin(vars.id, vars.motivo ? { motivo: vars.motivo } : undefined),
+    ...options?.mutation,
+  });
+};
+
+// ============================================================================
 // Rate Limit Info Hook (client-side tracking)
 // ============================================================================
 

@@ -8,6 +8,7 @@ import {
   useReservarAnonimo,
   useReservarCliente,
   getListTurnosDisponiblesQueryKey,
+  getGetHistorialQueryKey,
   type Turno,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
@@ -63,6 +64,9 @@ export default function Reservar() {
         });
         queryClient.invalidateQueries({
           queryKey: getListTurnosDisponiblesQueryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetHistorialQueryKey(),
         });
         setSelectedTurno(null);
         navigate("/mis-turnos");

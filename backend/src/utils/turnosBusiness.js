@@ -128,6 +128,7 @@ function classifyReservationEligibility(turno, now = new Date()) {
 module.exports = {
     normalizeTelefono,
     toUtcDateTime,
+    getBusinessComparableNow,
     getMinBookingDateTime,
     getTodayUtcDateOnly,
     getCancelCutoffDateTime,

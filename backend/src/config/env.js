@@ -49,7 +49,7 @@ const ENV = {
     AUDIT_ENABLED: parseBooleanEnv(process.env.AUDIT_ENABLED, true),
     AUDIT_RETENTION_DAYS: parsePositiveIntEnv(process.env.AUDIT_RETENTION_DAYS, 90, 'AUDIT_RETENTION_DAYS'),
     MIN_BOOKING_NOTICE_MINUTES: parsePositiveIntEnv(process.env.MIN_BOOKING_NOTICE_MINUTES, 10, 'MIN_BOOKING_NOTICE_MINUTES'),
-    CANCEL_MIN_HOURS: parsePositiveIntEnv(process.env.CANCEL_MIN_HOURS, 3, 'CANCEL_MIN_HOURS'),
+    CANCEL_MIN_HOURS: parsePositiveIntEnv(process.env.CANCEL_MIN_HOURS, 1, 'CANCEL_MIN_HOURS'),
 };
 
 /**

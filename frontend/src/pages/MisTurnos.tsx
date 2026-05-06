@@ -7,6 +7,7 @@ import {
   useGetHistorial,
   useCancelarCliente,
   getGetHistorialQueryKey,
+  getListTurnosDisponiblesQueryKey,
   type Turno,
 } from "@workspace/api-client-react";
 import { Glass, GoldDivider } from "@/components/Glass";
@@ -36,25 +37,36 @@ export default function MisTurnos() {
   const { data: turnos, isLoading } = useGetHistorial();
   const queryClient = useQueryClient();
   const [cancelar, setCancelar] = useState<Turno | null>(null);
+  const cancelWindowMs = 60 * 60 * 1000;
 
   const cancelarMut = useCancelarCliente({
     mutation: {
-      onSuccess: () => {
-        toast.success("Turno cancelado");
+      onSuccess: (response: any) => {
+        toast.success(response?.message ?? "Turno cancelado correctamente. El horario vuelve a estar disponible.");
         queryClient.invalidateQueries({ queryKey: getGetHistorialQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getListTurnosDisponiblesQueryKey() });
         setCancelar(null);
       },
-      onError: () => toast.error("No pudimos cancelar"),
+      onError: (error: any) => {
+        const backendMessage = error?.data?.message;
+        toast.error(backendMessage ?? "No pudimos cancelar");
+      },
     },
   });
 
-  const today = todayISO();
-  const proximos = (turnos ?? []).filter(
-    (t) => t.estado === "reservado" && t.fecha >= today,
-  );
-  const pasados = (turnos ?? []).filter(
-    (t) => t.estado === "cortado" || (t.estado === "reservado" && t.fecha < today),
-  );
+  const now = new Date();
+  const proximos = (turnos ?? []).filter((t) => {
+    if (t.estado !== "reservado") return false;
+    const dateTime = parseTurnoDateTime(t.fecha, t.hora);
+    return dateTime !== null && dateTime.getTime() > now.getTime();
+  });
+  const pasados = (turnos ?? []).filter((t) => {
+    if (t.estado === "cortado") return true;
+    if (t.estado !== "reservado") return false;
+
+    const dateTime = parseTurnoDateTime(t.fecha, t.hora);
+    return dateTime === null || dateTime.getTime() <= now.getTime();
+  });
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-12">
@@ -95,7 +107,12 @@ export default function MisTurnos() {
             ) : (
               <div className="space-y-3">
                 {proximos.map((t) => (
-                  <TurnoRow key={t.id} t={t} onCancelar={() => setCancelar(t)} />
+                  <TurnoRow
+                    key={t.id}
+                    t={t}
+                    onCancelar={isCancelableTurno(t, now, cancelWindowMs) ? () => setCancelar(t) : undefined}
+                    cancelable={isCancelableTurno(t, now, cancelWindowMs)}
+                  />
                 ))}
               </div>
             )}
@@ -139,7 +156,15 @@ export default function MisTurnos() {
   );
 }
 
-function TurnoRow({ t, onCancelar }: { t: Turno; onCancelar?: () => void }) {
+function TurnoRow({
+  t,
+  onCancelar,
+  cancelable = true,
+}: {
+  t: Turno;
+  onCancelar?: () => void;
+  cancelable?: boolean;
+}) {
   const meta = ESTADO_LABEL[t.estado] ?? ESTADO_LABEL["reservado"]!;
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -174,9 +199,38 @@ function TurnoRow({ t, onCancelar }: { t: Turno; onCancelar?: () => void }) {
                 <span className="hidden sm:inline ml-1">Cancelar</span>
               </Button>
             )}
+            {!onCancelar && cancelable === false && (
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                No cancelable por ahora
+              </span>
+            )}
           </div>
         </div>
       </Glass>
     </motion.div>
   );
+}
+
+function parseTurnoDateTime(fecha?: string, hora?: string): Date | null {
+  if (!fecha || !hora) return null;
+
+  const fechaMatch = /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+  const horaMatch = /^([01]\d|2[0-3]):([0-5]\d)/.exec(hora);
+
+  if (!fechaMatch || !horaMatch) return null;
+
+  const [year, month, day] = fecha.split("-").map(Number) as [number, number, number];
+  const hour = Number(horaMatch[1]);
+  const minute = Number(horaMatch[2]);
+  const dateTime = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+  if (Number.isNaN(dateTime.getTime())) return null;
+
+  return dateTime;
+}
+
+function isCancelableTurno(turno: Turno, now: Date, cancelWindowMs: number): boolean {
+  const dateTime = parseTurnoDateTime(turno.fecha, turno.hora);
+  if (!dateTime) return false;
+  return dateTime.getTime() - now.getTime() >= cancelWindowMs;
 }

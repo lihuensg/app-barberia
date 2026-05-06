@@ -50,14 +50,19 @@ async function historialCliente(usuarioId, query) {
     return turnos.map(serializeTurno);
 }
 
-async function cancelarCliente(usuarioId, turnoId) {
+async function cancelarCliente(usuarioId, turnoId, body = {}) {
     try {
-        const { updated, previousEstado } = await turnosRepository.cancelarCliente(usuarioId, turnoId);
+        const { updated, previousEstado } = await turnosRepository.cancelarCliente(usuarioId, turnoId, body);
         return { turno: serializeTurno(updated), previousEstado };
     } catch (error) {
         // Propagar el error tal cual del repositorio
         throw error;
     }
+}
+
+async function cancelarAdmin(turnoId, body = {}) {
+    const { updated, previousEstado } = await turnosRepository.cancelarAdmin(turnoId, body);
+    return { turno: serializeTurno(updated), previousEstado };
 }
 
 async function getAdminTurnos(query) {
@@ -74,6 +79,10 @@ async function getMetrics() {
             ? metrics.upcomingAppointments.map(serializeTurno)
             : [],
     };
+}
+
+async function getCancelacionesAdmin(query) {
+    return turnosRepository.getCancelacionesAdmin(query);
 }
 
 async function crearTurno({ fecha, hora }) {
@@ -236,8 +245,10 @@ module.exports = {
     reservarCliente,
     historialCliente,
     cancelarCliente,
+    cancelarAdmin,
     getAdminTurnos,
     getMetrics,
+    getCancelacionesAdmin,
     crearTurno,
     asignarTurnoAdmin,
     generarSemana,

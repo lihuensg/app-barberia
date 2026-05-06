@@ -1,7 +1,9 @@
 const prisma = require('../config/prisma');
+const { ENV } = require('../config/env');
 const {
     classifyReservationEligibility,
     getCancelCutoffDateTime,
+    getBusinessComparableNow,
     getMinBookingDateTime,
     getTodayUtcDateOnly,
     getTurnoDateTime,
@@ -9,6 +11,8 @@ const {
 } = require('../utils/turnosBusiness');
 
 const ACTIVE_STATES = ['reservado'];
+const CANCELADOR_CLIENTE = 'CLIENTE';
+const CANCELADOR_ADMIN = 'ADMIN';
 
 function parsePositiveInt(value, fallback) {
     const parsed = Number.parseInt(value, 10);
@@ -87,6 +91,40 @@ function buildActiveFutureWhere({ usuarioId, anonimoTelefono }) {
     }
 
     return where;
+}
+
+function getTurnoClientSnapshot(turno) {
+    return {
+        usuarioId: turno.usuarioId ?? null,
+        nombreCliente: turno.usuario?.nombre ?? turno.anonimoNombre ?? null,
+        emailCliente: turno.usuario?.email ?? turno.anonimoEmail ?? null,
+        telefonoCliente: turno.usuario?.telefono ?? turno.anonimoTelefono ?? null,
+    };
+}
+
+async function createTurnoCancelacionRecord(tx, turno, { canceladoPor, motivo }) {
+    const fechaHoraTurno = getTurnoDateTime(turno);
+
+    if (!fechaHoraTurno) {
+        const error = new Error('El turno tiene una fecha u hora inválida');
+        error.status = 400;
+        throw error;
+    }
+
+    const snapshot = getTurnoClientSnapshot(turno);
+
+    await tx.turnoCancelacion.create({
+        data: {
+            turnoId: turno.id,
+            usuarioId: snapshot.usuarioId,
+            nombreCliente: snapshot.nombreCliente,
+            emailCliente: snapshot.emailCliente,
+            telefonoCliente: snapshot.telefonoCliente,
+            fechaHoraTurno,
+            canceladoPor,
+            motivo: motivo || null,
+        },
+    });
 }
 
 async function findActiveFutureAppointmentByUser(usuarioId, client = prisma) {
@@ -412,9 +450,14 @@ async function historialCliente(usuarioId, { page = 1, limit = 20 } = {}) {
     });
 }
 
-async function cancelarCliente(usuarioId, turnoId) {
+async function cancelarCliente(usuarioId, turnoId, { motivo } = {}) {
     const turno = await prisma.turno.findUnique({
         where: { id: parseInt(turnoId, 10) },
+        include: {
+            usuario: {
+                select: { nombre: true, email: true, telefono: true },
+            },
+        },
     });
 
     if (!turno) {
@@ -444,8 +487,9 @@ async function cancelarCliente(usuarioId, turnoId) {
     }
 
     const now = new Date();
+    const businessNow = getBusinessComparableNow(now);
 
-    if (turnoDateTime.getTime() <= now.getTime()) {
+    if (turnoDateTime.getTime() <= businessNow.getTime()) {
         const error = new Error('No podés cancelar un turno en el pasado');
         error.status = 400;
         throw error;
@@ -454,17 +498,126 @@ async function cancelarCliente(usuarioId, turnoId) {
     const cancelCutoff = getCancelCutoffDateTime(now);
 
     if (turnoDateTime.getTime() < cancelCutoff.getTime()) {
-        const error = new Error(`No podés cancelar un turno con menos de ${require('../config/env').ENV.CANCEL_MIN_HOURS} horas de anticipación`);
+        const error = new Error(`No podés cancelar un turno con menos de ${ENV.CANCEL_MIN_HOURS} hora${ENV.CANCEL_MIN_HOURS === 1 ? '' : 's'} de anticipación.`);
         error.status = 400;
         throw error;
     }
 
-    const updated = await prisma.turno.update({
-        where: { id: parseInt(turnoId, 10) },
-        data: { estado: 'cancelado' },
+    const updated = await prisma.$transaction(async (tx) => {
+        await createTurnoCancelacionRecord(tx, turno, {
+            canceladoPor: CANCELADOR_CLIENTE,
+            motivo,
+        });
+
+        return tx.turno.update({
+            where: { id: parseInt(turnoId, 10) },
+            data: {
+                estado: 'disponible',
+                usuarioId: null,
+                anonimoNombre: null,
+                anonimoEmail: null,
+                anonimoTelefono: null,
+            },
+        });
     });
 
     return { updated, previousEstado: turno.estado };
+}
+
+async function cancelarAdmin(turnoId, { motivo } = {}) {
+    const turno = await prisma.turno.findUnique({
+        where: { id: parseInt(turnoId, 10) },
+        include: {
+            usuario: {
+                select: { nombre: true, email: true, telefono: true },
+            },
+        },
+    });
+
+    if (!turno) {
+        const error = new Error('El turno no existe');
+        error.status = 404;
+        throw error;
+    }
+
+    if (turno.estado === 'cortado') {
+        const error = new Error('No podés cancelar un turno ya marcado como cortado');
+        error.status = 400;
+        throw error;
+    }
+
+    if (turno.estado === 'cancelado') {
+        const error = new Error('Este turno ya estaba cancelado');
+        error.status = 400;
+        throw error;
+    }
+
+    if (turno.estado !== 'reservado') {
+        const error = new Error(`Solo se pueden cancelar turnos reservados. Estado actual: ${turno.estado}`);
+        error.status = 400;
+        throw error;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+        await createTurnoCancelacionRecord(tx, turno, {
+            canceladoPor: CANCELADOR_ADMIN,
+            motivo,
+        });
+
+        return tx.turno.update({
+            where: { id: parseInt(turnoId, 10) },
+            data: {
+                estado: 'disponible',
+                usuarioId: null,
+                anonimoNombre: null,
+                anonimoEmail: null,
+                anonimoTelefono: null,
+            },
+        });
+    });
+
+    return { updated, previousEstado: turno.estado };
+}
+
+async function getCancelacionesAdmin({
+    fechaDesde,
+    fechaHasta,
+    cliente,
+    canceladoPor,
+    page = 1,
+    limit = 100,
+}) {
+    const pageNumber = parsePositiveInt(page, 1);
+    const limitNumber = parsePositiveInt(limit, 100);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const where = {
+        ...(canceladoPor ? { canceladoPor } : {}),
+        ...(fechaDesde || fechaHasta
+            ? {
+                canceladoEn: {
+                    ...(fechaDesde ? { gte: new Date(`${fechaDesde}T00:00:00.000Z`) } : {}),
+                    ...(fechaHasta ? { lte: new Date(`${fechaHasta}T23:59:59.999Z`) } : {}),
+                },
+            }
+            : {}),
+        ...(cliente
+            ? {
+                OR: [
+                    { nombreCliente: { contains: cliente, mode: 'insensitive' } },
+                    { emailCliente: { contains: cliente, mode: 'insensitive' } },
+                    { telefonoCliente: { contains: cliente, mode: 'insensitive' } },
+                ],
+            }
+            : {}),
+    };
+
+    return prisma.turnoCancelacion.findMany({
+        where,
+        orderBy: { canceladoEn: 'desc' },
+        skip,
+        take: limitNumber,
+    });
 }
 
 async function getAdminTurnos({
@@ -637,10 +790,9 @@ async function getMetrics() {
             },
         }),
         // Cancelados hoy
-        prisma.turno.count({
+        prisma.turnoCancelacion.count({
             where: {
-                estado: 'cancelado',
-                fecha: { gte: startOfToday, lte: endOfToday },
+                canceladoEn: { gte: startOfToday, lte: endOfToday },
             },
         }),
         // Disponibles hoy (desde ahora hasta fin del día)
@@ -678,10 +830,9 @@ async function getMetrics() {
             },
         }),
         // Cancelados semana
-        prisma.turno.count({
+        prisma.turnoCancelacion.count({
             where: {
-                estado: 'cancelado',
-                fecha: { gte: startOfWeek, lte: endOfWeek },
+                canceladoEn: { gte: startOfWeek, lte: endOfWeek },
             },
         }),
         // Disponibles mes
@@ -699,10 +850,9 @@ async function getMetrics() {
             },
         }),
         // Cancelados mes
-        prisma.turno.count({
+        prisma.turnoCancelacion.count({
             where: {
-                estado: 'cancelado',
-                fecha: { gte: startOfMonth, lte: endOfMonth },
+                canceladoEn: { gte: startOfMonth, lte: endOfMonth },
             },
         }),
         // Cortados semana
@@ -893,9 +1043,11 @@ module.exports = {
     reservarClienteAtomico,
     historialCliente,
     cancelarCliente,
+    cancelarAdmin,
     asignarTurnoAdmin,
     getAdminTurnos,
     getMetrics,
+    getCancelacionesAdmin,
     crearTurno,
     marcarCortado,
     eliminarTurno,
