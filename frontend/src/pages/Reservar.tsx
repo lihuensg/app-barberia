@@ -58,16 +58,18 @@ export default function Reservar() {
 
   const reservarCliente = useReservarCliente({
     mutation: {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success("¡Turno reservado!", {
           description: "Te esperamos. Podés ver tu turno en 'Mis turnos'.",
         });
-        queryClient.invalidateQueries({
-          queryKey: getListTurnosDisponiblesQueryKey(),
-        });
-        queryClient.invalidateQueries({
-          queryKey: getGetHistorialQueryKey(),
-        });
+        await Promise.all([
+          queryClient.refetchQueries({
+            queryKey: getListTurnosDisponiblesQueryKey(),
+          }),
+          queryClient.refetchQueries({
+            queryKey: getGetHistorialQueryKey(),
+          }),
+        ]);
         setSelectedTurno(null);
         navigate("/mis-turnos");
       },
@@ -81,11 +83,11 @@ export default function Reservar() {
 
   const reservarAnonimo = useReservarAnonimo({
     mutation: {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success("¡Turno reservado!", {
           description: "Te esperamos. Guardá la fecha y hora.",
         });
-        queryClient.invalidateQueries({
+        await queryClient.refetchQueries({
           queryKey: getListTurnosDisponiblesQueryKey(),
         });
         setSelectedTurno(null);
