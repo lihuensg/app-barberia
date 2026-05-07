@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,14 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -35,8 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { fechaLarga, todayISO } from "@/lib/format";
-import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/utils/whatsapp";
-import { Trash2, Plus, CalendarRange, Phone } from "lucide-react";
+import { Trash2, Plus, CalendarRange } from "lucide-react";
 
 const DIAS_SEMANA = [
   { v: 1, label: "Lun" },
@@ -52,16 +43,7 @@ export default function AdminTurnos() {
   const queryClient = useQueryClient();
   const { data: turnos } = useListTurnosAdmin({});
   const [del, setDel] = useState<{ id: number; fecha: string; hora: string } | null>(null);
-  const [asignar, setAsignar] = useState<{ id: number; fecha: string; hora: string } | null>(null);
-  const [clienteNombre, setClienteNombre] = useState("");
-  const [clienteEmail, setClienteEmail] = useState("");
-  const [clienteWhatsapp, setClienteWhatsapp] = useState("");
-  const [ultimaAsignacion, setUltimaAsignacion] = useState<{
-    nombre: string;
-    whatsapp: string;
-    fecha: string;
-    hora: string;
-  } | null>(null);
+  const [expandedDates, setExpandedDates] = useState<string[]>([]);
 
   const [singleFecha, setSingleFecha] = useState(todayISO());
   const [singleHora, setSingleHora] = useState("10:00");
@@ -109,53 +91,9 @@ export default function AdminTurnos() {
     },
   });
 
-  const reservarManual = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!asignar) return;
-
-    const whatsappNormalizado = normalizeWhatsAppPhone(clienteWhatsapp);
-    if (!whatsappNormalizado) {
-      toast.error("Ingresá un número de WhatsApp válido.");
-      return;
-    }
-
-    try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || "";
-      const token = localStorage.getItem("nazabarber_token");
-      const response = await fetch(`${apiBase}/api/turnos/admin/asignar-anonimo`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          turnoId: asignar.id,
-          nombre: clienteNombre.trim(),
-          email: clienteEmail.trim() || undefined,
-          whatsapp: clienteWhatsapp.trim(),
-        }),
-      });
-
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(data?.message || "No pudimos asignar el turno");
-      }
-
-      toast.success("Turno asignado al cliente");
-      setUltimaAsignacion({
-        nombre: clienteNombre.trim(),
-        whatsapp: whatsappNormalizado,
-        fecha: asignar.fecha,
-        hora: asignar.hora,
-      });
-      setAsignar(null);
-      setClienteNombre("");
-      setClienteEmail("");
-      setClienteWhatsapp("");
-      invalidateAll();
-    } catch (error: any) {
-      toast.error("No pudimos asignar el turno", { description: error?.message });
-    }
+  // Toggle expanded dates to show/hide all turnos for a date
+  const toggleExpandedDate = (fecha: string) => {
+    setExpandedDates((prev) => (prev.includes(fecha) ? prev.filter((d) => d !== fecha) : [...prev, fecha]));
   };
 
   const grouped = (() => {
@@ -191,28 +129,7 @@ export default function AdminTurnos() {
         </p>
       </div>
 
-      {ultimaAsignacion && (
-        <Glass className="p-4 border-primary/30 bg-primary/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-medium">Turno asignado a {ultimaAsignacion.nombre}</div>
-            <div className="text-xs text-muted-foreground">
-              {fechaLarga(ultimaAsignacion.fecha)} · {ultimaAsignacion.hora} hs
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              const msg = `Hola ${ultimaAsignacion.nombre}, te confirmamos tu turno en Naza para el ${fechaLarga(ultimaAsignacion.fecha)} a las ${ultimaAsignacion.hora}. Te esperamos.`;
-              const url = buildWhatsAppUrl(ultimaAsignacion.whatsapp, msg);
-              if (url) window.open(url, "_blank", "noopener");
-            }}
-            className="shrink-0"
-          >
-            <Phone className="h-4 w-4 mr-2" /> Enviar WhatsApp al cliente
-          </Button>
-        </Glass>
-      )}
+      {/* Removed manual assignment feedback UI - assignments are not allowed from this page */}
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Glass className="p-5">
@@ -390,39 +307,55 @@ export default function AdminTurnos() {
                   </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {slots?.map((t) => (
-                    <motion.div
-                      key={t.id}
-                      layout
-                      className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-secondary/30 text-sm"
-                    >
-                      <span>{t.hora}</span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] uppercase tracking-[0.2em] ${estadoClassNames[t.estado] ?? "border-white/10 bg-white/5 text-muted-foreground"}`}
-                      >
-                        {t.estado}
-                      </Badge>
-                      <button
-                        onClick={() => setDel({ id: t.id, fecha: t.fecha, hora: t.hora })}
-                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                        aria-label="Eliminar"
-                        data-testid={`button-del-${t.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      {t.estado === "disponible" && (
-                        <button
-                          onClick={() => setAsignar({ id: t.id, fecha: t.fecha, hora: t.hora })}
-                          className="opacity-0 group-hover:opacity-100 text-primary hover:text-primary/80 transition-opacity"
-                          aria-label="Reservar a cliente"
-                          data-testid={`button-asignar-anonimo-${t.id}`}
-                        >
-                          <Phone className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </motion.div>
-                  ))}
+                  {(() => {
+                    const isExpanded = expandedDates.includes(fecha);
+                    const toShow = isExpanded ? (slots ?? []) : (slots?.slice(0, 3) ?? []);
+                    return (
+                      <>
+                        {toShow.map((t) => (
+                          <motion.div
+                            key={t.id}
+                            layout
+                            className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/10 bg-secondary/30 text-sm"
+                          >
+                            <span>{t.hora}</span>
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] uppercase tracking-[0.2em] ${estadoClassNames[t.estado] ?? "border-white/10 bg-white/5 text-muted-foreground"}`}
+                            >
+                              {t.estado}
+                            </Badge>
+                            <button
+                              onClick={() => setDel({ id: t.id, fecha: t.fecha, hora: t.hora })}
+                              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                              aria-label="Eliminar"
+                              data-testid={`button-del-${t.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </motion.div>
+                        ))}
+                        {!isExpanded && (slots?.length ?? 0) > 3 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedDate(fecha)}
+                            className="text-xs text-primary hover:underline mt-1"
+                          >
+                            Ver {(slots?.length ?? 0) - 3} turnos más
+                          </button>
+                        )}
+                        {isExpanded && (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpandedDate(fecha)}
+                            className="text-xs text-muted-foreground hover:underline mt-1"
+                          >
+                            Mostrar menos
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </Glass>
             ))}
@@ -450,61 +383,7 @@ export default function AdminTurnos() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={!!asignar} onOpenChange={(open) => !open && setAsignar(null)}>
-        <DialogContent className="bg-card/95 border-white/10 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reservar para cliente</DialogTitle>
-            <DialogDescription>
-              {asignar && `${fechaLarga(asignar.fecha)} · ${asignar.hora} hs`}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={reservarManual} className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="cliente-nombre">Nombre</Label>
-              <Input
-                id="cliente-nombre"
-                value={clienteNombre}
-                onChange={(e) => setClienteNombre(e.target.value)}
-                placeholder="Nombre del cliente"
-                required
-                data-testid="input-asignar-nombre"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cliente-email">Email (opcional)</Label>
-              <Input
-                id="cliente-email"
-                type="email"
-                value={clienteEmail}
-                onChange={(e) => setClienteEmail(e.target.value)}
-                placeholder="cliente@mail.com"
-                data-testid="input-asignar-email"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cliente-whatsapp">WhatsApp</Label>
-              <Input
-                id="cliente-whatsapp"
-                value={clienteWhatsapp}
-                onChange={(e) => setClienteWhatsapp(e.target.value)}
-                placeholder="+54 9 343 555 1234"
-                required
-                data-testid="input-asignar-whatsapp"
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setAsignar(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" data-testid="button-asignar-turno-cliente">
-                Reservar turno
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Assignment dialog removed — admin assignment from this page is disabled */}
     </div>
   );
 }
