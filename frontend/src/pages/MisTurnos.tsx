@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { fechaLarga, todayISO } from "@/lib/format";
+import { fechaLarga } from "@/lib/format";
 import { CalendarX2, Scissors, Calendar } from "lucide-react";
 
 const ESTADO_LABEL: Record<string, { label: string; className: string }> = {
