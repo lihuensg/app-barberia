@@ -37,7 +37,7 @@ async function getDisponibles(query) {
     return turnos.map(serializeTurno);
 }
 
-const { normalizeTelefono: normalizePhone } = require('../utils/turnosBusiness');
+const { normalizeTelefono: normalizePhone, classifyReservationEligibility, getMinBookingDateTime } = require('../utils/turnosBusiness');
 
 async function reservarAnonimo({ turnoId, nombre, email, telefono, whatsapp }, ip = null, isAdmin = false) {
     if (!turnoId || !nombre) {
@@ -115,6 +115,22 @@ async function crearTurno({ fecha, hora }) {
         error.status = 400;
         throw error;
     }
+    // Construir candidato en el mismo formato que usan las validaciones
+    const candidato = {
+        fecha: new Date(`${fecha}T00:00:00.000Z`),
+        hora: new Date(`1970-01-01T${hora}:00.000Z`),
+    };
+
+    const elig = classifyReservationEligibility(candidato);
+    if (!elig.ok) {
+        const cutoff = getMinBookingDateTime();
+        const cutoffFecha = cutoff.toISOString().split('T')[0];
+        const cutoffHora = cutoff.toISOString().split('T')[1].slice(0, 5);
+        const error = new Error(`No se puede crear ese turno: ${elig.reason}. La fecha/hora mínima permitida para reservar es ${cutoffFecha} ${cutoffHora}`);
+        error.status = 400;
+        throw error;
+    }
+
     const turno = await turnosRepository.crearTurno({ fecha, hora });
     return serializeTurno(turno);
 }
@@ -242,6 +258,22 @@ async function generarSemana({ fechaInicio, horaInicio, horaFin, intervaloMinuto
             const hh = String(Math.floor(minutosActuales / 60)).padStart(2, '0');
             const mm = String(minutosActuales % 60).padStart(2, '0');
             const horaStr = `${hh}:${mm}`;
+
+            // Evitar crear slots que no sean reservables según reglas de negocio
+            // (p. ej. muy cercanos al ahora). Construimos un objeto candidato y
+            // usamos la misma función de clasificación que valida reservas.
+            const candidato = {
+                fecha: new Date(`${fechaStr}T00:00:00.000Z`),
+                hora: new Date(`1970-01-01T${horaStr}:00.000Z`),
+            };
+
+            const elig = classifyReservationEligibility(candidato);
+            if (!elig.ok) {
+                // No es elegible para reserva ahora; omitir su creación
+                omitidos++;
+                minutosActuales += intervalo;
+                continue;
+            }
 
             try {
                 await turnosRepository.crearTurno({ fecha: fechaStr, hora: horaStr });

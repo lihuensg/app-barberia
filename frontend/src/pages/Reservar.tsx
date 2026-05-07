@@ -28,12 +28,6 @@ import { fechaLarga } from "@/lib/format";
 import { normalizeWhatsAppPhone, buildWhatsAppUrl } from "@/utils/whatsapp";
 import { Clock, Calendar, CheckCircle2 } from "lucide-react";
 
-function toLocalISODate(date: Date) {
-  const local = new Date(date);
-  local.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return local.toISOString().slice(0, 10);
-}
-
 export default function Reservar() {
   const { user, token } = useAuth();
   const queryClient = useQueryClient();
@@ -45,7 +39,6 @@ export default function Reservar() {
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [adminContactPhone, setAdminContactPhone] = useState<string | null>(null);
-  const today = toLocalISODate(new Date());
 
   useEffect(() => {
     if (!user) {
@@ -57,16 +50,14 @@ export default function Reservar() {
       setMode("cuenta");
     }
   }, [user]);
-  const weekEnd = useMemo(() => {
-    const end = new Date();
-    const daysUntilSunday = (7 - end.getDay()) % 7;
-    end.setDate(end.getDate() + daysUntilSunday);
-    return toLocalISODate(end);
-  }, []);
+  // Nota: originalmente limitábamos la vista a la semana actual. Quitamos ese
+  // límite para mostrar todos los turnos que devuelve la API.
 
   const availableTurnos = useMemo(() => {
-    return (turnos ?? []).filter((turno) => turno.fecha >= today && turno.fecha <= weekEnd);
-  }, [today, turnos, weekEnd]);
+    // Mostrar todos los turnos que trae la API (la API ya filtra por fecha futura
+    // y por reglas de negocio). Esto evita limitar la vista solo a la semana actual.
+    return turnos ?? [];
+  }, [turnos]);
 
   const reservarCliente = useReservarCliente({
     mutation: {
