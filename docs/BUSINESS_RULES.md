@@ -16,3 +16,10 @@
 - No se utiliza ninguna API paga ni envío automático: los enlaces abren WhatsApp Web/App y el usuario/admin debe tocar "Enviar".
 - Fuente de datos del barbero/admin: el perfil del admin en la base de datos es la fuente única de verdad para `telefono`, `whatsapp` e `instagram`.
 - Las variables de entorno `VITE_WHATSAPP_ADMIN_PHONE` y `WHATSAPP_ADMIN_PHONE` sólo deben usarse como fallback temporal si no hay admin configurado en la DB.
+
+## Validaciones y mensajes de formularios
+
+- La validación de seguridad/negocio permanece en backend y no se reemplaza por validación de frontend.
+- El frontend debe mostrar mensajes claros por campo para mejorar la experiencia, sin exponer errores técnicos.
+- Errores de validación (Zod), negocio (reservas, cancelaciones) y conexión se traducen a mensajes amigables.
+- En formularios de cliente se prioriza el dato `whatsapp` como contacto principal.

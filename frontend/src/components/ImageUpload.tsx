@@ -27,14 +27,14 @@ export function ImageUpload({
 
     if (!acceptedTypes.includes(file.type)) {
       setError(
-        `Solo se aceptan: ${acceptedTypes.map((t) => t.split("/")[1]).join(", ")}`
+        `Seleccioná una imagen válida (${acceptedTypes.map((t) => t.split("/")[1]).join(", ")}).`
       );
       return false;
     }
 
     if (file.size > maxSize) {
       const maxMB = (maxSize / 1024 / 1024).toFixed(1);
-      setError(`Tamaño máximo: ${maxMB}MB`);
+      setError(`La imagen supera el tamaño máximo permitido (${maxMB}MB).`);
       return false;
     }
 
@@ -52,7 +52,7 @@ export function ImageUpload({
       try {
         await onUpload(file, result);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al subir imagen");
+        setError(err instanceof Error ? err.message : "No pudimos subir la imagen. Intentá nuevamente.");
       }
     };
     reader.readAsDataURL(file);
@@ -122,10 +122,10 @@ export function ImageUpload({
           <Upload className="h-8 w-8 text-muted-foreground" />
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">
-              Arrastra tu imagen aquí
+              Arrastrá tu imagen acá
             </p>
             <p className="text-xs text-muted-foreground">
-              o haz clic para seleccionar
+              o hacé clic para seleccionarla
             </p>
           </div>
           <input

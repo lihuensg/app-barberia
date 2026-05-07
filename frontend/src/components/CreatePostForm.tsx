@@ -7,6 +7,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload } from "lucide-react";
+import { getErrorMessage } from "@/lib/formErrors";
 
 export function CreatePostForm({ onSuccess }: { onSuccess?: () => void }) {
   const queryClient = useQueryClient();
@@ -24,11 +25,11 @@ export function CreatePostForm({ onSuccess }: { onSuccess?: () => void }) {
           url: data.imageUrl,
           publicId: data.imagePublicId,
         });
-        toast.success("✓ Imagen subida a Cloudinary");
+        toast.success("Imagen subida correctamente.");
       },
       onError: (err: any) => {
-        toast.error("Error al subir imagen", {
-          description: err?.message || "Intentá con una imagen diferente",
+        toast.error("No pudimos subir la imagen", {
+          description: getErrorMessage(err, "Seleccioná una imagen válida e intentá nuevamente."),
         });
       },
     },
@@ -41,12 +42,12 @@ export function CreatePostForm({ onSuccess }: { onSuccess?: () => void }) {
         setImagePreview(null);
         setImageData(null);
         queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
-        toast.success("✓ Post publicado");
+        toast.success("Post creado correctamente.");
         onSuccess?.();
       },
       onError: (err: any) => {
-        toast.error("Error al crear el post", {
-          description: err?.message,
+        toast.error("No pudimos publicar el post", {
+          description: getErrorMessage(err, "Intentá nuevamente."),
         });
       },
     },
@@ -56,7 +57,7 @@ export function CreatePostForm({ onSuccess }: { onSuccess?: () => void }) {
     e.preventDefault();
 
     if (!imageData) {
-      toast.error("Necesitas subir una imagen");
+      toast.error("Seleccioná una imagen válida.");
       return;
     }
 
@@ -120,7 +121,7 @@ export function CreatePostForm({ onSuccess }: { onSuccess?: () => void }) {
         {!imageData && (
           <div className="flex gap-2 p-3 bg-amber-500/10 border border-amber-500/50 rounded-lg text-sm text-amber-600">
             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <div>Necesitas subir una imagen para publicar</div>
+            <div>Seleccioná una imagen para publicar.</div>
           </div>
         )}
 

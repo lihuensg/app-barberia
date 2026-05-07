@@ -37,8 +37,8 @@ function limpiarUsuario(usuario) {
 async function registrar(data) {
     const { nombre, email, password, whatsapp, telefono, instagram } = data;
 
-    if (!nombre || !email || !password) {
-        const error = new Error('Nombre, email y password son obligatorios');
+    if (!nombre || !email || !password || !(whatsapp || telefono)) {
+        const error = new Error('El nombre, el email, la contraseña y el WhatsApp son obligatorios.');
         error.status = 400;
         throw error;
     }
@@ -46,7 +46,7 @@ async function registrar(data) {
     const existe = await usuariosRepository.buscarPorEmail(email);
 
     if (existe) {
-        const error = new Error('El email ya está registrado');
+        const error = new Error('Ya existe una cuenta con este email.');
         error.status = 409;
         throw error;
     }
@@ -77,7 +77,7 @@ async function login(data) {
     const { email, password } = data;
 
     if (!email || !password) {
-        const error = new Error('Email y password son obligatorios');
+        const error = new Error('El email y la contraseña son obligatorios.');
         error.status = 400;
         throw error;
     }
@@ -85,7 +85,7 @@ async function login(data) {
     const usuario = await usuariosRepository.buscarPorEmail(email);
 
     if (!usuario) {
-        const error = new Error('Credenciales inválidas');
+        const error = new Error('Email o contraseña incorrectos.');
         error.status = 401;
         throw error;
     }
@@ -93,7 +93,7 @@ async function login(data) {
     const passwordOk = await bcrypt.compare(password, usuario.passwordHash);
 
     if (!passwordOk) {
-        const error = new Error('Credenciales inválidas');
+        const error = new Error('Email o contraseña incorrectos.');
         error.status = 401;
         throw error;
     }
@@ -115,7 +115,7 @@ async function forgotPassword(data) {
     const { email } = data;
 
     if (!email) {
-        const error = new Error('Email es obligatorio');
+        const error = new Error('El email es obligatorio.');
         error.status = 400;
         throw error;
     }
@@ -125,7 +125,7 @@ async function forgotPassword(data) {
 
     // Respuesta genérica siempre
     const respuestaGenerica = {
-        message: 'Si el email existe en nuestro sistema, recibirás instrucciones para recuperar tu contraseña.'
+        message: 'Si el email está registrado, te enviaremos las instrucciones para recuperar tu contraseña.'
     };
 
     if (!usuario) {
@@ -184,7 +184,7 @@ async function resetPassword(data) {
     const { token, newPassword } = data;
 
     if (!token || !newPassword) {
-        const error = new Error('token y newPassword son obligatorios');
+        const error = new Error('El enlace para cambiar la contraseña no es válido.');
         error.status = 400;
         throw error;
     }
@@ -211,7 +211,13 @@ async function resetPassword(data) {
                 });
             } catch (e) { /* no-op */ }
 
-            const error = new Error(tokenError || 'Token inválido');
+            const normalized = String(tokenError || '').toLowerCase();
+            const friendlyTokenMessage =
+                normalized.includes('expir')
+                    ? 'El enlace para cambiar la contraseña venció. Solicitá uno nuevo.'
+                    : 'El enlace no es válido o ya fue utilizado.';
+
+            const error = new Error(friendlyTokenMessage);
             error.status = 401;
             throw error;
         }
@@ -242,7 +248,7 @@ async function resetPassword(data) {
         } catch (e) { /* no-op */ }
 
         return {
-            message: 'Tu contraseña ha sido actualizada correctamente. Ahora puedes iniciar sesión con tu nueva contraseña.'
+            message: 'Contraseña actualizada correctamente. Ya podés iniciar sesión.'
         };
     } catch (error) {
         if (error.status) {

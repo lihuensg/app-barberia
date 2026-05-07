@@ -8,6 +8,7 @@ import { Glass } from "@/components/Glass";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage, isValidEmail } from "@/lib/formErrors";
 import { Scissors } from "lucide-react";
 
 export default function Login() {
@@ -15,17 +16,18 @@ export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const loginMutation = useLogin({
     mutation: {
       onSuccess: (data) => {
         login(data.token, data.usuario);
-        toast.success(`¡Bienvenido${data.usuario.rol === "admin" ? " admin" : ""}!`);
+        toast.success("Sesión iniciada correctamente.");
         navigate(data.usuario.rol === "admin" ? "/admin" : "/");
       },
       onError: (err: any) => {
         toast.error("No pudimos ingresar", {
-          description: err?.message ?? "Revisá los datos e intentá de nuevo.",
+          description: getErrorMessage(err, "No pudimos conectar con el servidor. Intentá nuevamente."),
         });
       },
     },
@@ -33,8 +35,14 @@ export default function Login() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      toast.error("Completá email y contraseña");
+    const nextErrors: { email?: string; password?: string } = {};
+    if (!email.trim()) nextErrors.email = "El email es obligatorio.";
+    else if (!isValidEmail(email)) nextErrors.email = "Ingresá un email válido.";
+
+    if (!password) nextErrors.password = "La contraseña es obligatoria.";
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
     loginMutation.mutate({ data: { email: email.trim(), password } });
@@ -65,10 +73,14 @@ export default function Login() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
                 autoComplete="email"
                 data-testid="input-login-email"
               />
+              {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
             </div>
             <div>
               <div className="flex items-center justify-between">
@@ -84,10 +96,14 @@ export default function Login() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
                 autoComplete="current-password"
                 data-testid="input-login-password"
               />
+              {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
             <Button
               type="submit"

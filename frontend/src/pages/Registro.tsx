@@ -8,6 +8,8 @@ import { Glass } from "@/components/Glass";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage, isValidEmail } from "@/lib/formErrors";
+import { isValidWhatsAppPhone } from "@/utils/whatsapp";
 import { Scissors } from "lucide-react";
 
 export default function Registro() {
@@ -17,19 +19,20 @@ export default function Registro() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [errors, setErrors] = useState<{ nombre?: string; email?: string; password?: string; whatsapp?: string }>({});
 
   const mutation = useRegistrar({
     mutation: {
       onSuccess: (data) => {
         login(data.token, data.usuario);
-        toast.success("¡Cuenta creada!", {
-          description: "Ya podés reservar tu primer turno.",
+        toast.success("Cuenta creada correctamente.", {
+          description: "Ya podés iniciar sesión.",
         });
         navigate("/reservar");
       },
       onError: (err: any) => {
         toast.error("No pudimos crear la cuenta", {
-          description: err?.message ?? "Revisá los datos e intentá de nuevo.",
+          description: getErrorMessage(err, "No pudimos crear tu cuenta. Intentá nuevamente."),
         });
       },
     },
@@ -37,18 +40,32 @@ export default function Registro() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!nombre.trim() || !email.trim() || password.length < 6) {
-      toast.error("Datos incompletos", {
-        description: "La contraseña debe tener al menos 6 caracteres.",
-      });
+    const nextErrors: { nombre?: string; email?: string; password?: string; whatsapp?: string } = {};
+
+    if (!nombre.trim()) nextErrors.nombre = "El nombre es obligatorio.";
+    if (!email.trim()) nextErrors.email = "El email es obligatorio.";
+    else if (!isValidEmail(email)) nextErrors.email = "Ingresá un email válido.";
+
+    if (!password) nextErrors.password = "La contraseña es obligatoria.";
+    else if (password.length < 8) nextErrors.password = "La contraseña debe tener al menos 8 caracteres.";
+    else if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
+      nextErrors.password = "La contraseña debe incluir letras y números.";
+    }
+
+    if (!whatsapp.trim()) nextErrors.whatsapp = "El WhatsApp es obligatorio.";
+    else if (!isValidWhatsAppPhone(whatsapp)) nextErrors.whatsapp = "Ingresá un número de WhatsApp válido.";
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
+
     mutation.mutate({
       data: {
         nombre: nombre.trim(),
         email: email.trim(),
         password,
-        whatsapp: whatsapp.trim() || undefined,
+        whatsapp: whatsapp.trim(),
       },
     });
   }
@@ -77,9 +94,13 @@ export default function Registro() {
               <Input
                 id="nombre"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => {
+                  setNombre(e.target.value);
+                  if (errors.nombre) setErrors((prev) => ({ ...prev, nombre: undefined }));
+                }}
                 data-testid="input-reg-nombre"
               />
+              {errors.nombre && <p className="text-xs text-destructive mt-1">{errors.nombre}</p>}
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
@@ -87,9 +108,13 @@ export default function Registro() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
                 data-testid="input-reg-email"
               />
+              {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
             </div>
             <div>
               <Label htmlFor="password">Contraseña</Label>
@@ -97,19 +122,27 @@ export default function Registro() {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
                 data-testid="input-reg-password"
               />
+              {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
             <div>
               <Label htmlFor="whatsapp">WhatsApp</Label>
               <Input
                 id="whatsapp"
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => {
+                  setWhatsapp(e.target.value);
+                  if (errors.whatsapp) setErrors((prev) => ({ ...prev, whatsapp: undefined }));
+                }}
                 placeholder="+54 9 11 ..."
                 data-testid="input-reg-whatsapp"
               />
+              {errors.whatsapp && <p className="text-xs text-destructive mt-1">{errors.whatsapp}</p>}
             </div>
             <Button
               type="submit"
@@ -117,7 +150,7 @@ export default function Registro() {
               disabled={mutation.isPending}
               data-testid="button-reg-submit"
             >
-              {mutation.isPending ? "Creando..." : "Crear cuenta"}
+              {mutation.isPending ? "Creando cuenta..." : "Crear cuenta"}
             </Button>
           </form>
 

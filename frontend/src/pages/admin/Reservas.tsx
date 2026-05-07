@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { fechaLarga, inicialesDe } from "@/lib/format";
 import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/utils/whatsapp";
+import { getErrorMessage } from "@/lib/formErrors";
 import { cn } from "@/lib/utils";
 import { Scissors, X, Phone, Mail } from "lucide-react";
 
@@ -85,7 +86,7 @@ export default function AdminReservas() {
         toast.success("Turno marcado como cortado");
         invalidate();
       },
-      onError: () => toast.error("No pudimos actualizar"),
+      onError: (e: any) => toast.error(getErrorMessage(e, "No pudimos actualizar el turno. Intentá nuevamente.")),
     },
   });
 
@@ -96,7 +97,7 @@ export default function AdminReservas() {
         setCancelar(null);
         invalidate();
       },
-      onError: (error: any) => toast.error(error?.data?.message ?? "No pudimos cancelar"),
+      onError: (error: any) => toast.error(getErrorMessage(error, "No pudimos cancelar la reserva. Intentá nuevamente.")),
     },
   });
 

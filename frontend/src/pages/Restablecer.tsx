@@ -7,12 +7,14 @@ import { Glass } from "@/components/Glass";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage } from "@/lib/formErrors";
 import { KeyRound } from "lucide-react";
 
 export default function Restablecer({ token }: { token: string }) {
   const [, navigate] = useLocation();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [errors, setErrors] = useState<{ password?: string; confirm?: string }>({});
 
   // Extraer userId del query string
   const userId = useMemo(() => {
@@ -26,14 +28,14 @@ export default function Restablecer({ token }: { token: string }) {
   const mutation = useResetPassword({
     mutation: {
       onSuccess: () => {
-        toast.success("Contraseña actualizada", {
-          description: "Ingresá con tu nueva clave.",
+        toast.success("Contraseña actualizada correctamente.", {
+          description: "Ya podés iniciar sesión.",
         });
         navigate("/login");
       },
       onError: (err: any) => {
         toast.error("No pudimos actualizar", {
-          description: err?.message ?? "El enlace puede haber expirado.",
+          description: getErrorMessage(err, "El enlace venció o ya fue utilizado. Solicitá uno nuevo."),
         });
       },
     },
@@ -45,7 +47,7 @@ export default function Restablecer({ token }: { token: string }) {
       <div className="mx-auto max-w-md px-4 sm:px-6 py-16">
         <Glass variant="strong" className="p-8">
           <p className="text-sm text-red-500 text-center">
-            Enlace inválido. Por favor, solicita uno nuevo.
+            El enlace para cambiar la contraseña no es válido.
           </p>
           <div className="text-center text-sm text-muted-foreground mt-6">
             <Link href="/recuperar" className="hover:text-primary">
@@ -73,14 +75,27 @@ export default function Restablecer({ token }: { token: string }) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (password.length < 6) {
-                toast.error("La contraseña debe tener al menos 6 caracteres.");
+              const nextErrors: { password?: string; confirm?: string } = {};
+
+              if (!password) {
+                nextErrors.password = "La nueva contraseña es obligatoria.";
+              } else if (password.length < 8) {
+                nextErrors.password = "La contraseña debe tener al menos 8 caracteres.";
+              } else if (!/^(?=.*[A-Za-z])(?=.*\d).+$/.test(password)) {
+                nextErrors.password = "La contraseña debe incluir letras y números.";
+              }
+
+              if (!confirm) {
+                nextErrors.confirm = "Confirmá tu nueva contraseña.";
+              } else if (password !== confirm) {
+                nextErrors.confirm = "Las contraseñas no coinciden.";
+              }
+
+              setErrors(nextErrors);
+              if (Object.keys(nextErrors).length > 0) {
                 return;
               }
-              if (password !== confirm) {
-                toast.error("Las contraseñas no coinciden");
-                return;
-              }
+
               mutation.mutate({
                 token,
                 data: {
@@ -96,9 +111,13 @@ export default function Restablecer({ token }: { token: string }) {
                 id="pwd"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
                 data-testid="input-reset-pwd"
               />
+              {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
             <div>
               <Label htmlFor="cpwd">Confirmar contraseña</Label>
@@ -106,9 +125,13 @@ export default function Restablecer({ token }: { token: string }) {
                 id="cpwd"
                 type="password"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(e) => {
+                  setConfirm(e.target.value);
+                  if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: undefined }));
+                }}
                 data-testid="input-reset-cpwd"
               />
+              {errors.confirm && <p className="text-xs text-destructive mt-1">{errors.confirm}</p>}
             </div>
             <Button
               type="submit"

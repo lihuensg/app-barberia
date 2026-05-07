@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { fechaLarga } from "@/lib/format";
 import { normalizeWhatsAppPhone, buildWhatsAppUrl } from "@/utils/whatsapp";
+import { getErrorMessage, isValidEmail } from "@/lib/formErrors";
 import { Clock, Calendar, CheckCircle2 } from "lucide-react";
 
 export default function Reservar() {
@@ -38,6 +39,7 @@ export default function Reservar() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ nombre?: string; email?: string; whatsapp?: string; turno?: string }>({});
   const [adminContactPhone, setAdminContactPhone] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,8 +65,8 @@ export default function Reservar() {
     mutation: {
       onSuccess: async (res: any) => {
         const turno = res?.turno ?? res ?? null;
-        toast.success("¡Turno reservado!", {
-          description: "Te esperamos. Podés ver tu turno en 'Mis turnos'.",
+        toast.success("Turno reservado correctamente.", {
+          description: "Te esperamos. Podés ver tu turno en Mis turnos.",
         });
         await Promise.all([
           queryClient.refetchQueries({
@@ -81,7 +83,7 @@ export default function Reservar() {
       },
       onError: (err: any) => {
         toast.error("No pudimos reservar", {
-          description: err?.message ?? "Probá con otro horario.",
+          description: getErrorMessage(err, "No pudimos reservar el turno. Intentá nuevamente."),
         });
       },
     },
@@ -91,8 +93,8 @@ export default function Reservar() {
     mutation: {
       onSuccess: async (res: any) => {
         const turno = res?.turno ?? null;
-        toast.success("¡Turno reservado!", {
-          description: "Te esperamos. Guardá la fecha y hora.",
+        toast.success("Turno reservado correctamente.", {
+          description: "Te esperamos. Guardá la fecha y la hora.",
         });
         await queryClient.refetchQueries({
           queryKey: getListTurnosDisponiblesQueryKey(),
@@ -105,7 +107,7 @@ export default function Reservar() {
       },
       onError: (err: any) => {
         toast.error("No pudimos reservar", {
-          description: err?.message ?? "Probá con otro horario.",
+          description: getErrorMessage(err, "No pudimos reservar el turno. Intentá nuevamente."),
         });
       },
     },
@@ -163,14 +165,34 @@ export default function Reservar() {
   const slotsDelDia = grouped.find(([f]) => f === activeFecha)?.[1] ?? [];
 
   function confirmar() {
-    if (!selectedTurno) return;
+    if (!selectedTurno) {
+      setFieldErrors((prev) => ({ ...prev, turno: "Seleccioná un turno para reservar." }));
+      toast.error("Seleccioná un turno para reservar.");
+      return;
+    }
+
+    setFieldErrors((prev) => ({ ...prev, turno: undefined }));
+
     if (token && (mode === "cuenta" || !user || user.rol !== "admin")) {
       reservarCliente.mutate({ data: { turnoId: selectedTurno.id } });
     } else {
+      const nextErrors: { nombre?: string; email?: string; whatsapp?: string } = {};
+
       if (!nombre.trim()) {
-        toast.error("Ingresá tu nombre");
-        return;
+        nextErrors.nombre = "El nombre es obligatorio.";
       }
+      if (!whatsapp.trim()) {
+        nextErrors.whatsapp = "El WhatsApp es obligatorio.";
+      } else if (!normalizeWhatsAppPhone(whatsapp)) {
+        nextErrors.whatsapp = "Ingresá un número de WhatsApp válido.";
+      }
+      if (email.trim() && !isValidEmail(email)) {
+        nextErrors.email = "Ingresá un email válido.";
+      }
+
+      setFieldErrors((prev) => ({ ...prev, ...nextErrors }));
+      if (Object.keys(nextErrors).length > 0) return;
+
       reservarAnonimo.mutate({
         data: {
           turnoId: selectedTurno.id,
@@ -300,10 +322,14 @@ export default function Reservar() {
                 <Input
                   id="nombre"
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
+                  onChange={(e) => {
+                    setNombre(e.target.value);
+                    if (fieldErrors.nombre) setFieldErrors((prev) => ({ ...prev, nombre: undefined }));
+                  }}
                   placeholder="Ej: Facundo Pérez"
                   data-testid="input-anon-nombre"
                 />
+                {fieldErrors.nombre && <p className="text-xs text-destructive mt-1">{fieldErrors.nombre}</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -312,18 +338,26 @@ export default function Reservar() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
                     data-testid="input-anon-email"
                   />
+                  {fieldErrors.email && <p className="text-xs text-destructive mt-1">{fieldErrors.email}</p>}
                 </div>
                 <div>
                   <Label htmlFor="whatsapp">WhatsApp (obligatorio)</Label>
                   <Input
                     id="whatsapp"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
+                    onChange={(e) => {
+                      setWhatsapp(e.target.value);
+                      if (fieldErrors.whatsapp) setFieldErrors((prev) => ({ ...prev, whatsapp: undefined }));
+                    }}
                     data-testid="input-anon-whatsapp"
                   />
+                  {fieldErrors.whatsapp && <p className="text-xs text-destructive mt-1">{fieldErrors.whatsapp}</p>}
                 </div>
               </div>
             </div>
@@ -370,10 +404,10 @@ export default function Reservar() {
                       const msgPlain = getPostReservaWhatsAppMessage();
                       const url = phone ? buildWhatsAppUrl(phone, msgPlain) : null;
                       if (url) window.open(url, '_blank', 'noopener');
-                      else toast.error(isAdminAnonymousBooking ? 'No se encontró número de contacto del cliente' : 'No se encontró número de contacto para Naza');
+                      else toast.error(isAdminAnonymousBooking ? 'No se encontró un WhatsApp de contacto del cliente' : 'No se encontró un WhatsApp de contacto para Naza');
                     } catch (e) {
                       console.error(e);
-                      toast.error(isAdminAnonymousBooking ? 'No pudimos obtener el teléfono del cliente' : 'No pudimos obtener el contacto de Naza');
+                      toast.error(isAdminAnonymousBooking ? 'No pudimos obtener el WhatsApp del cliente' : 'No pudimos obtener el contacto de Naza');
                     }
                   }}
                 >

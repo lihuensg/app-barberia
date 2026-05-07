@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { fechaLarga } from "@/lib/format";
+import { getErrorMessage } from "@/lib/formErrors";
 import { CalendarX2, Scissors, Calendar } from "lucide-react";
 
 const ESTADO_LABEL: Record<string, { label: string; className: string }> = {
@@ -48,8 +49,7 @@ export default function MisTurnos() {
         setCancelar(null);
       },
       onError: (error: any) => {
-        const backendMessage = error?.data?.message;
-        toast.error(backendMessage ?? "No pudimos cancelar");
+        toast.error(getErrorMessage(error, "No pudimos cancelar el turno. Intentá nuevamente."));
       },
     },
   });

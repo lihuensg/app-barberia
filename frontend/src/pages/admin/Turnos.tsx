@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { getErrorMessage } from "@/lib/formErrors";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +54,8 @@ export default function AdminTurnos() {
   const [horaFin, setHoraFin] = useState("19:00");
   const [intervalo, setIntervalo] = useState(45);
   const [dias, setDias] = useState<number[]>([1, 2, 3, 4, 5, 6]);
+  const [singleErrors, setSingleErrors] = useState<{ fecha?: string; hora?: string }>({});
+  const [bulkErrors, setBulkErrors] = useState<{ fechaInicio?: string; horaInicio?: string; horaFin?: string; intervalo?: string; dias?: string }>({});
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: getListTurnosAdminQueryKey() });
@@ -63,31 +66,36 @@ export default function AdminTurnos() {
   const crearMut = useCrearTurno({
     mutation: {
       onSuccess: () => {
-        toast.success("Turno creado");
+        toast.success("Turno creado correctamente.");
         invalidateAll();
       },
-      onError: (e: any) => toast.error("No pudimos crear el turno", { description: e?.message }),
+      onError: (e: any) => toast.error("No pudimos crear el turno", { description: getErrorMessage(e, "Intentá nuevamente.") }),
     },
   });
 
   const semanaMut = useGenerarSemana({
     mutation: {
       onSuccess: (data) => {
-        toast.success(`Se generaron ${data.creados} turnos`);
+        const omitidos = Number((data as any)?.omitidos ?? 0);
+        toast.success(
+          omitidos > 0
+            ? "Turnos generados correctamente. Algunos horarios ya existían y fueron omitidos."
+            : "Turnos generados correctamente.",
+        );
         invalidateAll();
       },
-      onError: () => toast.error("No pudimos generar la semana"),
+      onError: (e: any) => toast.error("No pudimos generar los turnos", { description: getErrorMessage(e, "Intentá nuevamente.") }),
     },
   });
 
   const deleteMut = useDeleteTurno({
     mutation: {
       onSuccess: () => {
-        toast.success("Turno eliminado");
+        toast.success("Turno eliminado correctamente.");
         setDel(null);
         invalidateAll();
       },
-      onError: () => toast.error("No pudimos eliminar"),
+      onError: (e: any) => toast.error(getErrorMessage(e, "No pudimos eliminar el turno. Intentá nuevamente.")),
     },
   });
 
@@ -140,6 +148,14 @@ export default function AdminTurnos() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+
+              const nextErrors: { fecha?: string; hora?: string } = {};
+              if (!singleFecha) nextErrors.fecha = "La fecha es obligatoria.";
+              if (!singleHora) nextErrors.hora = "La hora es obligatoria.";
+
+              setSingleErrors(nextErrors);
+              if (Object.keys(nextErrors).length > 0) return;
+
               crearMut.mutate({ data: { fecha: singleFecha, hora: singleHora } });
             }}
             className="grid sm:grid-cols-2 gap-3"
@@ -150,10 +166,14 @@ export default function AdminTurnos() {
                 id="sf"
                 type="date"
                 value={singleFecha}
-                onChange={(e) => setSingleFecha(e.target.value)}
+                onChange={(e) => {
+                  setSingleFecha(e.target.value);
+                  if (singleErrors.fecha) setSingleErrors((prev) => ({ ...prev, fecha: undefined }));
+                }}
                 data-testid="input-single-fecha"
                 className="text-sm"
               />
+              {singleErrors.fecha && <p className="text-xs text-destructive mt-1">{singleErrors.fecha}</p>}
             </div>
             <div>
               <Label htmlFor="sh" className="text-xs sm:text-sm">Hora</Label>
@@ -161,10 +181,14 @@ export default function AdminTurnos() {
                 id="sh"
                 type="time"
                 value={singleHora}
-                onChange={(e) => setSingleHora(e.target.value)}
+                onChange={(e) => {
+                  setSingleHora(e.target.value);
+                  if (singleErrors.hora) setSingleErrors((prev) => ({ ...prev, hora: undefined }));
+                }}
                 data-testid="input-single-hora"
                 className="text-sm"
               />
+              {singleErrors.hora && <p className="text-xs text-destructive mt-1">{singleErrors.hora}</p>}
             </div>
             <div className="sm:col-span-2 flex justify-end">
               <Button
@@ -187,6 +211,18 @@ export default function AdminTurnos() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+
+              const nextErrors: { fechaInicio?: string; horaInicio?: string; horaFin?: string; intervalo?: string; dias?: string } = {};
+              if (!bulkFecha) nextErrors.fechaInicio = "La fecha de inicio es obligatoria.";
+              if (!horaInicio) nextErrors.horaInicio = "La hora de inicio es obligatoria.";
+              if (!horaFin) nextErrors.horaFin = "La hora de fin es obligatoria.";
+              if (!intervalo || Number(intervalo) < 15) nextErrors.intervalo = "El intervalo debe ser de al menos 15 minutos.";
+              if (horaInicio && horaFin && horaFin <= horaInicio) nextErrors.horaFin = "La hora de fin debe ser posterior a la hora de inicio.";
+              if (!dias.length) nextErrors.dias = "Seleccioná al menos un día.";
+
+              setBulkErrors(nextErrors);
+              if (Object.keys(nextErrors).length > 0) return;
+
               semanaMut.mutate({
                 data: {
                   fechaInicio: bulkFecha,
@@ -206,10 +242,14 @@ export default function AdminTurnos() {
                   id="bf"
                   type="date"
                   value={bulkFecha}
-                  onChange={(e) => setBulkFecha(e.target.value)}
+                  onChange={(e) => {
+                    setBulkFecha(e.target.value);
+                    if (bulkErrors.fechaInicio) setBulkErrors((prev) => ({ ...prev, fechaInicio: undefined }));
+                  }}
                   data-testid="input-bulk-desde"
                   className="text-sm"
                 />
+                {bulkErrors.fechaInicio && <p className="text-xs text-destructive mt-1">{bulkErrors.fechaInicio}</p>}
               </div>
               <div>
                 <Label htmlFor="hi" className="text-xs sm:text-sm">Hora inicio</Label>
@@ -217,10 +257,14 @@ export default function AdminTurnos() {
                   id="hi"
                   type="time"
                   value={horaInicio}
-                  onChange={(e) => setHoraInicio(e.target.value)}
+                  onChange={(e) => {
+                    setHoraInicio(e.target.value);
+                    if (bulkErrors.horaInicio) setBulkErrors((prev) => ({ ...prev, horaInicio: undefined }));
+                  }}
                   data-testid="input-bulk-hi"
                   className="text-sm"
                 />
+                {bulkErrors.horaInicio && <p className="text-xs text-destructive mt-1">{bulkErrors.horaInicio}</p>}
               </div>
               <div>
                 <Label htmlFor="hf" className="text-xs sm:text-sm">Hora fin</Label>
@@ -228,10 +272,14 @@ export default function AdminTurnos() {
                   id="hf"
                   type="time"
                   value={horaFin}
-                  onChange={(e) => setHoraFin(e.target.value)}
+                  onChange={(e) => {
+                    setHoraFin(e.target.value);
+                    if (bulkErrors.horaFin) setBulkErrors((prev) => ({ ...prev, horaFin: undefined }));
+                  }}
                   data-testid="input-bulk-hf"
                   className="text-sm"
                 />
+                {bulkErrors.horaFin && <p className="text-xs text-destructive mt-1">{bulkErrors.horaFin}</p>}
               </div>
               <div className="sm:col-span-2">
                 <Label htmlFor="iv" className="text-xs sm:text-sm">Intervalo (min)</Label>
@@ -241,10 +289,14 @@ export default function AdminTurnos() {
                   min={15}
                   step={5}
                   value={intervalo}
-                  onChange={(e) => setIntervalo(Number(e.target.value))}
+                  onChange={(e) => {
+                    setIntervalo(Number(e.target.value));
+                    if (bulkErrors.intervalo) setBulkErrors((prev) => ({ ...prev, intervalo: undefined }));
+                  }}
                   data-testid="input-bulk-iv"
                   className="text-sm"
                 />
+                {bulkErrors.intervalo && <p className="text-xs text-destructive mt-1">{bulkErrors.intervalo}</p>}
               </div>
             </div>
             <div>
@@ -276,6 +328,7 @@ export default function AdminTurnos() {
                 })}
               </div>
             </div>
+            {bulkErrors.dias && <p className="text-xs text-destructive">{bulkErrors.dias}</p>}
             <div className="flex justify-end">
               <Button
                 type="submit"

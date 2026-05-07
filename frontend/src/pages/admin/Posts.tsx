@@ -14,6 +14,7 @@ import { Glass } from "@/components/Glass";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage } from "@/lib/formErrors";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,16 +45,13 @@ export default function AdminPosts() {
   const crearMut = useCrearPost({
     mutation: {
       onSuccess: () => {
-        toast.success("Post publicado");
+        toast.success("Post creado correctamente.");
         setImagenPreview(null);
         setImageData(null);
         setDescripcion("");
         invalidate();
       },
-      onError: (e: any) =>
-        toast.error("No pudimos publicar", {
-          description: e?.data?.errors?.[0]?.message || e?.data?.message || e?.message,
-        }),
+      onError: (e: any) => toast.error("No pudimos publicar el post", { description: getErrorMessage(e, "Intentá nuevamente.") }),
     },
   });
 
@@ -65,7 +63,7 @@ export default function AdminPosts() {
       },
       onError: (e: any) => {
         toast.error("No pudimos subir la imagen", {
-          description: e?.data?.errors?.[0]?.message || e?.data?.message || e?.message,
+          description: getErrorMessage(e, "Seleccioná una imagen válida e intentá nuevamente."),
         });
       },
     },
@@ -74,11 +72,11 @@ export default function AdminPosts() {
   const deleteMut = useDeletePost({
     mutation: {
       onSuccess: () => {
-        toast.success("Post eliminado");
+        toast.success("Post eliminado correctamente.");
         setDel(null);
         invalidate();
       },
-      onError: () => toast.error("No pudimos eliminar"),
+      onError: (e: any) => toast.error(getErrorMessage(e, "No pudimos eliminar el post. Intentá nuevamente.")),
     },
   });
 
@@ -86,11 +84,11 @@ export default function AdminPosts() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      toast.error("Formato no permitido. Usá JPG, PNG o WEBP");
+      toast.error("Seleccioná una imagen válida (JPG, PNG o WEBP).");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen no puede superar 5MB");
+      toast.error("La imagen supera el tamaño máximo permitido.");
       return;
     }
 
@@ -106,8 +104,13 @@ export default function AdminPosts() {
   function publicar(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!imageData?.url && !descripcion.trim()) {
+      toast.error("El post debe tener texto o imagen.");
+      return;
+    }
+
     if (!imageData?.url) {
-      toast.error("Subí una imagen antes de publicar");
+      toast.error("Seleccioná una imagen válida.");
       return;
     }
 

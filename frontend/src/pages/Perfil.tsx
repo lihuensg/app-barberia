@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { inicialesDe } from "@/lib/format";
+import { getErrorMessage } from "@/lib/formErrors";
+import { isValidWhatsAppPhone } from "@/utils/whatsapp";
 import { Camera } from "lucide-react";
 
 export default function Perfil() {
@@ -24,25 +26,28 @@ export default function Perfil() {
   const [nombre, setNombre] = useState(user?.nombre ?? "");
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? "");
   const [instagram, setInstagram] = useState(user?.instagram ?? "");
+  const [errors, setErrors] = useState<{ nombre?: string; whatsapp?: string }>({});
+  // Si el usuario es admin, Instagram es obligatorio en el perfil
+  const isAdmin = user?.rol === 'admin';
 
   const updateMut = useUpdateMe({
     mutation: {
       onSuccess: () => {
-        toast.success("Perfil actualizado");
+        toast.success("Perfil actualizado correctamente.");
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetAdminPublicosQueryKey() });
       },
-      onError: () => toast.error("No pudimos guardar los cambios"),
+      onError: (e: any) => toast.error(getErrorMessage(e, "No pudimos guardar los cambios. Intentá nuevamente.")),
     },
   });
 
   const fotoMut = useUploadProfileImage({
     mutation: {
       onSuccess: () => {
-        toast.success("Foto actualizada");
+        toast.success("Foto actualizada correctamente.");
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
       },
-      onError: () => toast.error("No pudimos subir la foto"),
+      onError: (e: any) => toast.error(getErrorMessage(e, "No pudimos subir la imagen. Intentá nuevamente.")),
     },
   });
 
@@ -50,7 +55,7 @@ export default function Perfil() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("La imagen no puede superar 2MB");
+      toast.error("La imagen supera el tamaño máximo permitido (2MB).");
       return;
     }
     // Subir como multipart/form-data (no base64)
@@ -103,6 +108,19 @@ export default function Perfil() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+
+              const nextErrors: { nombre?: string; whatsapp?: string; instagram?: string } = {};
+              if (!nombre.trim()) nextErrors.nombre = "El nombre completo es obligatorio.";
+              if (whatsapp.trim() && !isValidWhatsAppPhone(whatsapp)) {
+                nextErrors.whatsapp = "Ingresá un número de WhatsApp válido.";
+              }
+              if (isAdmin && !instagram.trim()) {
+                nextErrors.instagram = "El Instagram es obligatorio.";
+              }
+
+              setErrors(nextErrors);
+              if (Object.keys(nextErrors).length > 0) return;
+
               updateMut.mutate({
                 data: {
                   nombre: nombre.trim(),
@@ -118,30 +136,42 @@ export default function Perfil() {
               <Input
                 id="nombre"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => {
+                  setNombre(e.target.value);
+                  if (errors.nombre) setErrors((prev) => ({ ...prev, nombre: undefined }));
+                }}
                 data-testid="input-perfil-nombre"
                 className="text-sm"
               />
+              {errors.nombre && <p className="text-xs text-destructive mt-1">{errors.nombre}</p>}
             </div>
             <div>
               <Label htmlFor="whatsapp" className="text-xs sm:text-sm">WhatsApp</Label>
               <Input
                 id="whatsapp"
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => {
+                  setWhatsapp(e.target.value);
+                  if (errors.whatsapp) setErrors((prev) => ({ ...prev, whatsapp: undefined }));
+                }}
                 data-testid="input-perfil-whatsapp"
                 className="text-sm"
               />
+              {errors.whatsapp && <p className="text-xs text-destructive mt-1">{errors.whatsapp}</p>}
             </div>
             <div>
               <Label htmlFor="instagram" className="text-xs sm:text-sm">Instagram</Label>
               <Input
                 id="instagram"
                 value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
+                onChange={(e) => {
+                  setInstagram(e.target.value);
+                  if (errors.instagram) setErrors((prev) => ({ ...prev, instagram: undefined }));
+                }}
                 data-testid="input-perfil-ig"
                 className="text-sm"
               />
+                {errors.instagram && <p className="text-xs text-destructive mt-1">{errors.instagram}</p>}
             </div>
             <div className="sm:col-span-2 flex justify-end">
               <Button

@@ -7,20 +7,22 @@ import { Glass } from "@/components/Glass";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage, isValidEmail } from "@/lib/formErrors";
 import { Mail } from "lucide-react";
 
 export default function Recuperar() {
   const [email, setEmail] = useState("");
   const [enviado, setEnviado] = useState(false);
+  const [emailError, setEmailError] = useState<string>("");
 
   const mutation = useForgotPassword({
     mutation: {
       onSuccess: (data) => {
-        toast.success(data.message ?? "Listo");
+        toast.success(data.message ?? "Si el email está registrado, te enviaremos las instrucciones para recuperar tu contraseña.");
         setEnviado(true);
       },
-      onError: () => {
-        toast.error("No pudimos procesar el pedido.");
+      onError: (err: any) => {
+        toast.error(getErrorMessage(err, "No pudimos enviar la solicitud. Intentá nuevamente."));
       },
     },
   });
@@ -52,9 +54,14 @@ export default function Recuperar() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!email.trim()) {
-                    toast.error("Ingresá tu email");
+                    setEmailError("El email es obligatorio.");
                     return;
                   }
+                  if (!isValidEmail(email)) {
+                    setEmailError("Ingresá un email válido.");
+                    return;
+                  }
+                  setEmailError("");
                   mutation.mutate({ data: { email: email.trim() } });
                 }}
                 className="space-y-4"
@@ -65,9 +72,13 @@ export default function Recuperar() {
                     id="email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailError) setEmailError("");
+                    }}
                     data-testid="input-recuperar-email"
                   />
+                  {emailError && <p className="text-xs text-destructive mt-1">{emailError}</p>}
                 </div>
                 <Button
                   type="submit"

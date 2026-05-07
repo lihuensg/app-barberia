@@ -16,12 +16,31 @@ async function getMe(usuarioId) {
 async function updateMe(usuarioId, data) {
     const { nombre, telefono, instagram, whatsapp } = data;
 
-    const usuario = await usuariosRepository.actualizarPerfil(usuarioId, {
-        nombre,
-        whatsapp,
-        telefono,
-        instagram,
-    });
+    // Obtener usuario actual para comprobaciones (rol, valores actuales)
+    const usuarioActual = await usuariosRepository.buscarPorId(usuarioId);
+    if (!usuarioActual) {
+        const error = new Error('Usuario no encontrado');
+        error.status = 404;
+        throw error;
+    }
+
+    // Para evitar que valores vacíos sobrescriban la DB accidentalmente,
+    // solo incluimos en el payload los campos que vienen definidos y no vacíos.
+    const payload = {};
+    if (typeof nombre !== 'undefined' && String(nombre).trim() !== '') payload.nombre = String(nombre).trim();
+    if (typeof whatsapp !== 'undefined' && String(whatsapp).trim() !== '') payload.whatsapp = String(whatsapp).trim();
+    if (typeof telefono !== 'undefined' && String(telefono).trim() !== '') payload.telefono = String(telefono).trim();
+    if (typeof instagram !== 'undefined' && String(instagram).trim() !== '') payload.instagram = String(instagram).trim();
+
+    // Si es admin, asegurarnos de que exista un instagram (ya sea el actual o el enviado)
+    const resultingInstagram = payload.hasOwnProperty('instagram') ? payload.instagram : usuarioActual.instagram;
+    if (usuarioActual.rol === 'admin' && (!resultingInstagram || String(resultingInstagram).trim() === '')) {
+        const error = new Error('El Instagram es obligatorio para la barbería. No podés dejarlo vacío.');
+        error.status = 400;
+        throw error;
+    }
+
+    const usuario = await usuariosRepository.actualizarPerfil(usuarioId, payload);
 
     return sanitizeUser(usuario);
 }

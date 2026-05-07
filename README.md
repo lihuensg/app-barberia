@@ -70,3 +70,10 @@ npm run dev
 - [QA checklist](docs/QA_CHECKLIST.md)
 - [Despliegue](docs/DEPLOYMENT.md)
 - [Cloudinary](backend/CLOUDINARY_SETUP.md)
+
+## Validaciones y mensajes de formularios
+- Todos los formularios usan mensajes en español claro (sin errores técnicos crudos).
+- Los campos obligatorios muestran mensajes específicos por campo (ej. "El email es obligatorio.").
+- Se usa "WhatsApp" como dato de contacto en formularios y mensajes.
+- La validación fuerte sigue en backend; el frontend agrega validación temprana para mejorar UX.
+- Errores de red, rate-limit y negocio se traducen a mensajes amigables para el usuario.

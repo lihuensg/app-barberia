@@ -23,7 +23,7 @@ describe('Auth Service - Seguridad', () => {
 
         await expect(authService.login({ email: 'noexiste@test.com', password: 'x' }))
             .rejects
-            .toMatchObject({ status: 401, message: 'Credenciales inválidas' });
+            .toMatchObject({ status: 401, message: 'Email o contraseña incorrectos.' });
     });
 
     test('login exitoso no devuelve passwordHash', async () => {
@@ -58,6 +58,7 @@ describe('Auth Service - Seguridad', () => {
             nombre: 'Hacker',
             email: 'hacker@test.com',
             password: 'Password123',
+            whatsapp: '+5493410000000',
             rol: 'admin',
         });
 

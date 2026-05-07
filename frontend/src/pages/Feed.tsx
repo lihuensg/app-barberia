@@ -21,6 +21,7 @@ import { RateLimitIndicator } from "@/components/RateLimitIndicator";
 import { inicialesDe, tiempoRelativo } from "@/lib/format";
 import { Heart, MessageCircle, Send, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/formErrors";
 
 export default function Feed() {
   const { user } = useAuth();
@@ -76,12 +77,12 @@ function PostCard({ post, canInteract }: { post: Post; canInteract: boolean }) {
       },
       onError: (err: any) => {
         if (err?.status === 429) {
-          toast.error("⏱️ Demasiados likes", {
-            description: "Esperá un momento antes de dar más likes",
+          toast.error("Demasiados intentos", {
+            description: "Esperá unos minutos y volvé a intentar.",
           });
         } else {
           toast.error("No pudimos procesar tu reacción", {
-            description: err?.message,
+            description: getErrorMessage(err, "Intentá nuevamente."),
           });
         }
       },
@@ -97,12 +98,12 @@ function PostCard({ post, canInteract }: { post: Post; canInteract: boolean }) {
       },
       onError: (err: any) => {
         if (err?.status === 429) {
-          toast.error("⏱️ Demasiados comentarios", {
-            description: "Esperá 10 minutos antes de comentar de nuevo",
+          toast.error("Demasiados intentos", {
+            description: "Esperá unos minutos y volvé a intentar.",
           });
         } else {
           toast.error("No pudimos publicar el comentario", {
-            description: err?.message,
+            description: getErrorMessage(err, "Intentá nuevamente."),
           });
         }
       },
@@ -117,7 +118,7 @@ function PostCard({ post, canInteract }: { post: Post; canInteract: boolean }) {
       },
       onError: (err: any) => {
         toast.error("No pudimos eliminar el comentario", {
-          description: err?.message,
+          description: getErrorMessage(err, "Intentá nuevamente."),
         });
       },
     },
@@ -250,7 +251,10 @@ function PostCard({ post, canInteract }: { post: Post; canInteract: boolean }) {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!comentario.trim()) return;
+                  if (!comentario.trim()) {
+                    toast.error("El comentario no puede estar vacío.");
+                    return;
+                  }
                   comentarMut.mutate({
                     postId: post.id,
                     data: { texto: comentario.trim() },
