@@ -12,9 +12,10 @@ function serializeTurno(t) {
             : String(t.hora).slice(0, 5),
         estado: t.estado,
         clienteId: t.usuarioId ?? null,
-        clienteNombre: t.cliente_nombre ?? t.usuario?.nombre ?? null,
-        clienteEmail: t.cliente_email ?? t.usuario?.email ?? null,
-        clienteTelefono: t.cliente_telefono ?? t.usuario?.telefono ?? null,
+        // Si tiene usuario registrado, usar datos del usuario; si no, usar datos anónimos
+        clienteNombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
+        clienteEmail: t.usuario?.email ?? t.anonimoEmail ?? null,
+        clienteTelefono: t.usuario?.telefono ?? t.anonimoTelefono ?? null,
         clienteFoto: t.usuario?.foto ?? null,
         anonimo: !t.usuarioId && !!t.anonimoNombre,
     };

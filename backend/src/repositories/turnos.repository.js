@@ -816,9 +816,9 @@ async function getAdminTurnos({
 
     return turnos.map((t) => ({
         ...t,
-        cliente_nombre: t.usuario?.nombre,
-        cliente_email: t.usuario?.email,
-        cliente_telefono: t.usuario?.telefono,
+        cliente_nombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
+        cliente_email: t.usuario?.email ?? t.anonimoEmail ?? null,
+        cliente_telefono: t.usuario?.telefono ?? t.anonimoTelefono ?? null,
         usuario: undefined,
     }));
 }
