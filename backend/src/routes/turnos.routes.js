@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const authMiddleware = require('../middlewares/auth.middleware');
+const optionalAuthMiddleware = require('../middlewares/optionalAuth.middleware');
 const adminMiddleware = require('../middlewares/admin.middleware');
 const { adminGenerarSemanaLimiter, adminEliminarLimiter } = require('../middlewares/rateLimiter.middleware');
 const turnosController = require('../controllers/turnos.controller');
@@ -26,7 +27,7 @@ const {
 } = require('../validations/turnos.validation');
 
 router.get('/disponibles', validateQuery(turnosDisponiblesQuerySchema), turnosController.getDisponibles);
-router.post('/anonimo', validateBody(reservarAnonimoBodySchema), turnosController.reservarAnonimo);
+router.post('/anonimo', optionalAuthMiddleware, validateBody(reservarAnonimoBodySchema), turnosController.reservarAnonimo);
 router.post('/cliente', authMiddleware, validateBody(reservarClienteBodySchema), turnosController.reservarCliente);
 router.get('/historial', authMiddleware, validateQuery(historialQuerySchema), turnosController.historialCliente);
 router.put('/cancelarCliente/:id', authMiddleware, validateParams(cancelarClienteParamsSchema), validateBody(cancelarClienteBodySchema), turnosController.cancelarCliente);
@@ -37,6 +38,7 @@ router.get('/admin/metrics', authMiddleware, adminMiddleware, turnosController.g
 router.get('/admin/cancelaciones', authMiddleware, adminMiddleware, validateQuery(cancelacionesAdminQuerySchema), turnosController.getCancelacionesAdmin);
 router.post('/crear', authMiddleware, adminMiddleware, validateBody(crearTurnoBodySchema), turnosController.crearTurno);
 router.post('/admin/asignar', authMiddleware, adminMiddleware, validateBody(asignarTurnoBodySchema), turnosController.asignarTurnoAdmin);
+router.post('/admin/asignar-anonimo', authMiddleware, adminMiddleware, validateBody(reservarAnonimoBodySchema), turnosController.asignarTurnoAnonimo);
 router.post('/generar-semana', authMiddleware, adminGenerarSemanaLimiter, adminMiddleware, validateBody(generarSemanaBodySchema), turnosController.generarSemana);
 router.put('/marcar-cortado/:id', authMiddleware, adminMiddleware, validateParams(marcarCortadoParamsSchema), validateBody(marcarCortadoBodySchema), turnosController.marcarCortado);
 router.delete('/:id', authMiddleware, adminEliminarLimiter, adminMiddleware, validateParams(eliminarTurnoParamsSchema), turnosController.eliminarTurno);

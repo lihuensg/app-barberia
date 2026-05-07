@@ -13,7 +13,26 @@ async function getDisponibles(req, res) {
 
 async function reservarAnonimo(req, res) {
     try {
-        const turno = await turnosService.reservarAnonimo(req.body);
+        const ctx = getAuditContext(req);
+        const isAdmin = req.usuario?.rol === 'admin';
+        const turno = await turnosService.reservarAnonimo(req.body, ctx.ip, isAdmin);
+        try {
+            void auditLog({
+                userId: null,
+                action: 'ANONIMO_RESERVO_TURNO',
+                entity: 'Turno',
+                entityId: turno.id,
+                status: 'SUCCESS',
+                ip: ctx.ip,
+                userAgent: ctx.userAgent,
+                metadata: {
+                    estadoNuevo: 'reservado',
+                    fecha: turno.fecha,
+                    hora: turno.hora,
+                    adminManualBooking: isAdmin,
+                },
+            });
+        } catch (e) { /* no-op */ }
         res.status(201).json({
             message: 'Turno reservado correctamente',
             turno
@@ -296,6 +315,30 @@ async function eliminarTurno(req, res) {
     }
 }
 
+async function asignarTurnoAnonimo(req, res) {
+    try {
+        const result = await turnosService.asignarTurnoAnonimo(req.body);
+
+        logAdminAction({
+            adminId: req.admin?.id || req.usuario?.id,
+            action: 'ADMIN_ASIGNO_TURNO_ANONIMO',
+            entity: 'turno',
+            entityId: result.id,
+            ip: req.ip,
+            userAgent: req.get('user-agent'),
+        });
+
+        res.status(201).json({
+            message: 'Turno asignado correctamente (sin cuenta)',
+            turno: result,
+        });
+    } catch (error) {
+        res.status(error.status || 500).json({
+            message: error.message || 'Error al asignar turno anónimo',
+        });
+    }
+}
+
 module.exports = {
     getDisponibles,
     reservarAnonimo,
@@ -308,6 +351,7 @@ module.exports = {
     getCancelacionesAdmin,
     crearTurno,
     asignarTurnoAdmin,
+    asignarTurnoAnonimo,
     generarSemana,
     marcarCortado,
     eliminarTurno

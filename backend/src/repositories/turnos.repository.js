@@ -159,6 +159,54 @@ async function findActiveFutureAppointmentByPhone(telefono, client = prisma) {
     }) || null;
 }
 
+async function findActiveFutureAppointmentByEmail(email, client = prisma) {
+    if (!email) return null;
+
+    const turnos = await client.turno.findMany({
+        where: {
+            estado: { in: ACTIVE_STATES },
+            fecha: { gte: getTodayUtcDateOnly() },
+            anonimoEmail: { equals: String(email).toLowerCase() },
+        },
+        orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
+    });
+
+    const now = new Date();
+    return turnos.find((turno) => {
+        const turnoDateTime = getTurnoDateTime(turno);
+        return turnoDateTime && turnoDateTime.getTime() > now.getTime();
+    }) || null;
+}
+
+async function countActiveAnonimoReservationsByIp(ip, client = prisma) {
+    if (!ip) return 0;
+
+    // Buscar en audit logs reservas anónimas hechas desde esta IP y recuperar los entityId (turno id)
+    const logs = await client.auditLog.findMany({
+        where: {
+            ip: String(ip),
+            action: 'ANONIMO_RESERVO_TURNO',
+            entity: 'Turno',
+            status: 'SUCCESS',
+        },
+        select: { entityId: true },
+    });
+
+    const ids = logs.map((l) => l.entityId).filter((id) => id !== null);
+
+    if (ids.length === 0) return 0;
+
+    const count = await client.turno.count({
+        where: {
+            id: { in: ids },
+            estado: { in: ACTIVE_STATES },
+            fecha: { gte: getTodayUtcDateOnly() },
+        },
+    });
+
+    return count;
+}
+
 async function findActiveFutureAppointmentsByUser(usuarioId, client = prisma) {
     const turnos = await client.turno.findMany({
         where: buildActiveFutureWhere({ usuarioId }),
@@ -290,10 +338,9 @@ async function getDisponibles({ fechaDesde, fechaHasta, page = 1, limit = 100 })
     return visibles.slice(skip, skip + limitNumber);
 }
 
-async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono }) {
+async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono, ip = null, isAdmin = false }) {
     const id = parseInt(turnoId, 10);
     const normalizedTelefono = normalizeTelefono(telefono);
-
     const turno = await prisma.turno.findUnique({ where: { id } });
 
     if (!turno) {
@@ -330,6 +377,27 @@ async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono }) {
         }
     }
 
+    if (email) {
+        const existingEmailAppointment = await findActiveFutureAppointmentByEmail(String(email).toLowerCase());
+
+        if (existingEmailAppointment) {
+            const error = new Error('Ya existe un turno activo asociado a este email.');
+            error.status = 409;
+            throw error;
+        }
+    }
+
+    // Límite por IP: máximo 3 turnos activos desde la misma IP
+    // NO aplica si es admin
+    if (ip && !isAdmin) {
+        const existingFromIp = await countActiveAnonimoReservationsByIp(ip);
+        if (existingFromIp >= 3) {
+            const error = new Error('Se alcanzó el límite de reservas anónimas desde esta IP.');
+            error.status = 409;
+            throw error;
+        }
+    }
+
     const updated = await prisma.turno.updateMany({
         where: {
             id,
@@ -339,7 +407,7 @@ async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono }) {
         data: {
             estado: 'reservado',
             anonimoNombre: nombre,
-            anonimoEmail: email || null,
+            anonimoEmail: email ? String(email).toLowerCase() : null,
             anonimoTelefono: normalizedTelefono,
             usuarioId: null,
         },
@@ -358,6 +426,61 @@ async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono }) {
                 select: { nombre: true, email: true, telefono: true, foto: true },
             },
         },
+    });
+}
+
+async function asignarTurnoAdminAnonimo({ turnoId, nombre, email, telefono }) {
+    const id = parseInt(turnoId, 10);
+
+    return prisma.$transaction(async (tx) => {
+        const turno = await tx.turno.findUnique({ where: { id } });
+
+        if (!turno) {
+            const error = new Error('El turno no existe');
+            error.status = 404;
+            throw error;
+        }
+
+        const eligibility = classifyReservationEligibility(turno);
+
+        if (!eligibility.ok) {
+            const error = new Error(
+                eligibility.reason === 'past'
+                    ? 'No podés reservar un turno que ya pasó'
+                    : 'No podés reservar un turno con tan poca anticipación',
+            );
+            error.status = 400;
+            throw error;
+        }
+
+        if (turno.estado !== 'disponible') {
+            const error = new Error('El turno ya fue reservado por otra persona');
+            error.status = 409;
+            throw error;
+        }
+
+        const updated = await tx.turno.updateMany({
+            where: {
+                id,
+                estado: 'disponible',
+                ...buildMinBookingWhere(),
+            },
+            data: {
+                estado: 'reservado',
+                usuarioId: null,
+                anonimoNombre: nombre,
+                anonimoEmail: email ? String(email).toLowerCase() : null,
+                anonimoTelefono: telefono ? normalizeTelefono(telefono) : null,
+            },
+        });
+
+        if (updated.count === 0) {
+            const error = new Error('El turno ya fue reservado por otra persona');
+            error.status = 409;
+            throw error;
+        }
+
+        return tx.turno.findUnique({ where: { id } });
     });
 }
 
@@ -1045,6 +1168,7 @@ module.exports = {
     cancelarCliente,
     cancelarAdmin,
     asignarTurnoAdmin,
+    asignarTurnoAdminAnonimo,
     getAdminTurnos,
     getMetrics,
     getCancelacionesAdmin,
@@ -1054,4 +1178,5 @@ module.exports = {
     findActiveFutureAppointmentByUser,
     findActiveFutureAppointmentsByUser,
     findActiveFutureAppointmentByPhone,
+    findActiveFutureAppointmentByEmail,
 };

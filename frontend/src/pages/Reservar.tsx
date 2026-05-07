@@ -226,14 +226,16 @@ export default function Reservar() {
           </DialogHeader>
 
           {user ? (
-            <div className="mt-2">
-              <Tabs value={mode} onValueChange={(v) => setMode(v as "cuenta" | "anonimo")}>
-                <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="cuenta">Con mi cuenta</TabsTrigger>
-                  <TabsTrigger value="anonimo">Sin cuenta</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+            user.rol === 'admin' ? (
+              <div className="mt-2">
+                <Tabs value={mode} onValueChange={(v) => setMode(v as "cuenta" | "anonimo")}>
+                  <TabsList className="grid grid-cols-2 w-full">
+                    <TabsTrigger value="cuenta">Con mi cuenta</TabsTrigger>
+                    <TabsTrigger value="anonimo">Sin cuenta</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            ) : null
           ) : (
             <div className="text-sm text-muted-foreground">
               ¿Ya tenés cuenta?{" "}

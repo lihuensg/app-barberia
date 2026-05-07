@@ -25,13 +25,13 @@ async function getDisponibles(query) {
     return turnos.map(serializeTurno);
 }
 
-async function reservarAnonimo({ turnoId, nombre, email, telefono }) {
+async function reservarAnonimo({ turnoId, nombre, email, telefono }, ip = null, isAdmin = false) {
     if (!turnoId || !nombre) {
         const error = new Error('turnoId y nombre son obligatorios');
         error.status = 400;
         throw error;
     }
-    const turno = await turnosRepository.reservarAnonimoAtomico({ turnoId, nombre, email, telefono });
+    const turno = await turnosRepository.reservarAnonimoAtomico({ turnoId, nombre, email, telefono, ip, isAdmin });
     return serializeTurno(turno);
 }
 
@@ -111,6 +111,18 @@ async function asignarTurnoAdmin({ turnoId, usuarioId, force = false }) {
             ? result.existingAppointments
             : [],
     };
+}
+
+async function asignarTurnoAnonimo({ turnoId, nombre, email, telefono }) {
+    if (!turnoId || !nombre) {
+        const error = new Error('turnoId y nombre son obligatorios');
+        error.status = 400;
+        throw error;
+    }
+
+    const turno = await turnosRepository.asignarTurnoAdminAnonimo({ turnoId, nombre, email, telefono });
+
+    return serializeTurno(turno);
 }
 
 async function generarSemana({ fechaInicio, horaInicio, horaFin, intervaloMinutos, diasIncluidos, cantidadDias = 7 }) {
@@ -251,6 +263,7 @@ module.exports = {
     getCancelacionesAdmin,
     crearTurno,
     asignarTurnoAdmin,
+    asignarTurnoAnonimo,
     generarSemana,
     marcarCortado,
     eliminarTurno,
