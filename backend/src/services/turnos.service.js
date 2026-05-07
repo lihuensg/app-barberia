@@ -2,6 +2,13 @@ const turnosRepository = require('../repositories/turnos.repository');
 
 function serializeTurno(t) {
     if (!t) return null;
+    const clienteId = t.clienteId ?? t.usuarioId ?? null;
+    const clienteNombre = t.clienteNombre ?? t.cliente_nombre ?? t.usuario?.nombre ?? t.anonimoNombre ?? null;
+    const clienteEmail = t.clienteEmail ?? t.cliente_email ?? t.usuario?.email ?? t.anonimoEmail ?? null;
+    const clienteTelefono = t.clienteTelefono ?? t.cliente_telefono ?? t.usuario?.telefono ?? t.anonimoTelefono ?? null;
+    const clienteFoto = t.clienteFoto ?? t.cliente_foto ?? t.usuario?.foto ?? null;
+    const telefonoNormalizado = t.clienteTelefonoNormalized ?? t.cliente_telefono_normalizado ?? t.anonimoTelefonoNormalizado ?? null;
+
     return {
         id: t.id,
         fecha: t.fecha instanceof Date
@@ -11,13 +18,13 @@ function serializeTurno(t) {
             ? t.hora.toISOString().split('T')[1].slice(0, 5)
             : String(t.hora).slice(0, 5),
         estado: t.estado,
-        clienteId: t.usuarioId ?? null,
-        // Si tiene usuario registrado, usar datos del usuario; si no, usar datos anónimos
-        clienteNombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
-        clienteEmail: t.usuario?.email ?? t.anonimoEmail ?? null,
-        clienteTelefono: t.usuario?.telefono ?? t.anonimoTelefono ?? null,
-        clienteFoto: t.usuario?.foto ?? null,
-        anonimo: !t.usuarioId && !!t.anonimoNombre,
+        clienteId,
+        clienteNombre,
+        clienteEmail,
+        clienteTelefono,
+        clienteTelefonoNormalized: telefonoNormalizado,
+        clienteFoto,
+        anonimo: t.anonimo ?? (!clienteId && !!(t.anonimoNombre ?? t.anonimo_nombre ?? clienteNombre)),
     };
 }
 
@@ -26,13 +33,25 @@ async function getDisponibles(query) {
     return turnos.map(serializeTurno);
 }
 
-async function reservarAnonimo({ turnoId, nombre, email, telefono }, ip = null, isAdmin = false) {
+const { normalizeTelefono: normalizePhone } = require('../utils/turnosBusiness');
+
+async function reservarAnonimo({ turnoId, nombre, email, telefono, whatsapp }, ip = null, isAdmin = false) {
     if (!turnoId || !nombre) {
         const error = new Error('turnoId y nombre son obligatorios');
         error.status = 400;
         throw error;
     }
-    const turno = await turnosRepository.reservarAnonimoAtomico({ turnoId, nombre, email, telefono, ip, isAdmin });
+
+    // Teléfono/WhatsApp obligatorio para reserva anónima
+    const rawPhone = whatsapp || telefono || null;
+    const normalized = normalizePhone(rawPhone);
+    if (!normalized) {
+        const error = new Error('Para reservar sin cuenta tenés que ingresar un número de WhatsApp válido.');
+        error.status = 400;
+        throw error;
+    }
+
+    const turno = await turnosRepository.reservarAnonimoAtomico({ turnoId, nombre, email, telefono: rawPhone, ip, isAdmin });
     return serializeTurno(turno);
 }
 

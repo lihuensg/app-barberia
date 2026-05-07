@@ -14,12 +14,13 @@ async function getMe(usuarioId) {
 }
 
 async function updateMe(usuarioId, data) {
-    const { nombre, telefono, instagram } = data;
+    const { nombre, telefono, instagram, whatsapp } = data;
 
     const usuario = await usuariosRepository.actualizarPerfil(usuarioId, {
         nombre,
         telefono,
-        instagram
+        instagram,
+        whatsapp
     });
 
     return sanitizeUser(usuario);
@@ -80,7 +81,21 @@ async function subirFoto(usuarioId, fotoUrl, file) {
 async function getAdminPublico() {
     const admin = await usuariosRepository.obtenerAdminPublico();
 
-    return sanitizeUser(admin);
+    if (!admin) return null;
+
+    const { normalizeTelefono } = require('../utils/turnosBusiness');
+    const telef = admin.whatsapp || admin.telefono || null;
+    const whatsappNormalizado = normalizeTelefono(telef);
+
+    return {
+        nombre: admin.nombre || null,
+        email: admin.email || null,
+        telefono: admin.telefono || null,
+        whatsapp: admin.whatsapp || null,
+        instagram: admin.instagram || null,
+        foto: admin.foto || null,
+        whatsappNormalizado: whatsappNormalizado || null,
+    };
 }
 
 async function getClientes({ search, page, limit }) {

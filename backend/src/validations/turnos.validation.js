@@ -20,7 +20,9 @@ const turnosDisponiblesQuerySchema = z.object({
 const reservarAnonimoBodySchema = z.object({
     turnoId: positiveInt,
     nombre: nombreSchema,
-    telefono: telefonoSchema,
+    // Aceptamos `whatsapp` o `telefono` para compatibilidad; se normaliza en el servicio
+    telefono: telefonoSchema.optional(),
+    whatsapp: telefonoSchema.optional(),
     email: emailSchema.optional(),
     notas: z.string().trim().max(300, 'Notas no puede superar 300 caracteres').optional(),
 }).strict();

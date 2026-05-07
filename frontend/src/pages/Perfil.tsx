@@ -7,6 +7,7 @@ import {
   useUploadProfileImage,
   getGetMeQueryKey,
 } from "@workspace/api-client-react";
+import { getGetAdminPublicosQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/lib/auth";
 import { Glass, GoldDivider } from "@/components/Glass";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,14 +22,15 @@ export default function Perfil() {
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState(user?.nombre ?? "");
-  const [telefono, setTelefono] = useState(user?.telefono ?? "");
   const [instagram, setInstagram] = useState(user?.instagram ?? "");
+  const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? "");
 
   const updateMut = useUpdateMe({
     mutation: {
       onSuccess: () => {
         toast.success("Perfil actualizado");
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetAdminPublicosQueryKey() });
       },
       onError: () => toast.error("No pudimos guardar los cambios"),
     },
@@ -104,7 +106,7 @@ export default function Perfil() {
               updateMut.mutate({
                 data: {
                   nombre: nombre.trim(),
-                  telefono: telefono.trim() || undefined,
+                  whatsapp: whatsapp.trim() || undefined,
                   instagram: instagram.trim() || undefined,
                 },
               });
@@ -122,12 +124,12 @@ export default function Perfil() {
               />
             </div>
             <div>
-              <Label htmlFor="telefono" className="text-xs sm:text-sm">Teléfono</Label>
+              <Label htmlFor="whatsapp" className="text-xs sm:text-sm">WhatsApp</Label>
               <Input
-                id="telefono"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                data-testid="input-perfil-tel"
+                id="whatsapp"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                data-testid="input-perfil-whatsapp"
                 className="text-sm"
               />
             </div>

@@ -27,12 +27,15 @@ function limpiarUsuario(usuario) {
         foto: usuario.foto,
         rol: usuario.rol,
         bio: usuario.bio,
-        whatsapp: usuario.whatsapp
+        whatsapp: usuario.whatsapp,
+        whatsappNormalizado: (function(){
+            try { const { normalizeTelefono } = require('../utils/turnosBusiness'); return normalizeTelefono(usuario.whatsapp || usuario.telefono || null); } catch(e){ return null }
+        })()
     };
 }
 
 async function registrar(data) {
-    const { nombre, email, password, telefono, instagram } = data;
+    const { nombre, email, password, whatsapp, telefono, instagram } = data;
 
     if (!nombre || !email || !password) {
         const error = new Error('Nombre, email y password son obligatorios');
@@ -50,12 +53,15 @@ async function registrar(data) {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Prefer `whatsapp` field; for backward compatibility accept `telefono` if whatsapp missing
+    const whatsappToSave = whatsapp || telefono || undefined;
+
     const usuario = await usuariosRepository.crearCliente({
         nombre,
         email,
         passwordHash,
-        telefono,
-        instagram
+        whatsapp: whatsappToSave,
+        instagram: undefined // no instagram for public registration
     });
 
     const usuarioLimpio = limpiarUsuario(usuario);

@@ -16,8 +16,7 @@ export default function Registro() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [telefono, setTelefono] = useState("");
-  const [instagram, setInstagram] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   const mutation = useRegistrar({
     mutation: {
@@ -49,8 +48,7 @@ export default function Registro() {
         nombre: nombre.trim(),
         email: email.trim(),
         password,
-        telefono: telefono.trim() || undefined,
-        instagram: instagram.trim() || undefined,
+        whatsapp: whatsapp.trim() || undefined,
       },
     });
   }
@@ -103,27 +101,15 @@ export default function Registro() {
                 data-testid="input-reg-password"
               />
             </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="telefono">Teléfono</Label>
-                <Input
-                  id="telefono"
-                  value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="+54 9 11 ..."
-                  data-testid="input-reg-tel"
-                />
-              </div>
-              <div>
-                <Label htmlFor="instagram">Instagram</Label>
-                <Input
-                  id="instagram"
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                  placeholder="usuario"
-                  data-testid="input-reg-ig"
-                />
-              </div>
+            <div>
+              <Label htmlFor="whatsapp">WhatsApp</Label>
+              <Input
+                id="whatsapp"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="+54 9 11 ..."
+                data-testid="input-reg-whatsapp"
+              />
             </div>
             <Button
               type="submit"

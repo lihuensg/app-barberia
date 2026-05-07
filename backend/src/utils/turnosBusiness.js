@@ -45,15 +45,42 @@ function getBusinessComparableNow(now = new Date()) {
 function normalizeTelefono(telefono) {
     if (!telefono) return null;
 
-    const value = String(telefono).trim();
+    let value = String(telefono).trim();
     if (!value) return null;
 
-    const hasPlus = value.startsWith('+');
-    const digits = value.replace(/[^\d]/g, '');
-
+    // Eliminar caracteres no numéricos
+    let digits = value.replace(/[^\d]/g, '');
     if (!digits) return null;
 
-    return hasPlus ? `+${digits}` : digits;
+    // Eliminar ceros a la izquierda
+    digits = digits.replace(/^0+/, '');
+
+    // Si comienza con '15' (prefijo antiguo móvil local), quitarlo
+    if (digits.startsWith('15') && digits.length > 10) {
+        digits = digits.replace(/^15/, '');
+    }
+
+    // Si ya contiene el código de país 54 o 549, dejarlo
+    if (digits.startsWith('549') || digits.startsWith('54')) {
+        // OK
+    } else {
+        // Si tiene 10 dígitos (ej: 3435551234) o entre 10 y 11, asumimos Argentina y agregamos 549
+        if (digits.length >= 10 && digits.length <= 11) {
+            digits = `549${digits}`;
+        } else if (digits.length < 10) {
+            // demasiado corto
+            return null;
+        } else {
+            // Para otros largos, prefijar 549 como fallback
+            digits = `549${digits}`;
+        }
+    }
+
+    // Validar que ahora sean solo números y longitud razonable
+    if (!/^\d+$/.test(digits)) return null;
+    if (digits.length < 10 || digits.length > 15) return null;
+
+    return digits;
 }
 
 function toUtcDateTime(fecha, hora) {

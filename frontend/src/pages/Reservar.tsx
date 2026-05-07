@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { fechaLarga } from "@/lib/format";
+import { normalizeWhatsAppPhone, buildWhatsAppUrl } from "@/utils/whatsapp";
 import { Clock, Calendar, CheckCircle2 } from "lucide-react";
 
 function toLocalISODate(date: Date) {
@@ -34,17 +35,28 @@ function toLocalISODate(date: Date) {
 }
 
 export default function Reservar() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
   const { data: turnos, isLoading } = useListTurnosDisponibles();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
-  const [mode, setMode] = useState<"cuenta" | "anonimo">(user ? "cuenta" : "anonimo");
+  const [mode, setMode] = useState<"cuenta" | "anonimo">(token ? "cuenta" : "anonimo");
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [adminContactPhone, setAdminContactPhone] = useState<string | null>(null);
   const today = toLocalISODate(new Date());
+
+  useEffect(() => {
+    if (!user) {
+      setMode("anonimo");
+      return;
+    }
+
+    if (user.rol !== "admin") {
+      setMode("cuenta");
+    }
+  }, [user]);
   const weekEnd = useMemo(() => {
     const end = new Date();
     const daysUntilSunday = (7 - end.getDay()) % 7;
@@ -58,7 +70,8 @@ export default function Reservar() {
 
   const reservarCliente = useReservarCliente({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (res: any) => {
+        const turno = res?.turno ?? res ?? null;
         toast.success("¡Turno reservado!", {
           description: "Te esperamos. Podés ver tu turno en 'Mis turnos'.",
         });
@@ -71,7 +84,9 @@ export default function Reservar() {
           }),
         ]);
         setSelectedTurno(null);
-        navigate("/mis-turnos");
+        if (turno) {
+          setPostReserva(turno);
+        }
       },
       onError: (err: any) => {
         toast.error("No pudimos reservar", {
@@ -83,7 +98,8 @@ export default function Reservar() {
 
   const reservarAnonimo = useReservarAnonimo({
     mutation: {
-      onSuccess: async () => {
+      onSuccess: async (res: any) => {
+        const turno = res?.turno ?? null;
         toast.success("¡Turno reservado!", {
           description: "Te esperamos. Guardá la fecha y hora.",
         });
@@ -93,7 +109,8 @@ export default function Reservar() {
         setSelectedTurno(null);
         setNombre("");
         setEmail("");
-        setTelefono("");
+        setWhatsapp("");
+        if (turno) setPostReserva(turno);
       },
       onError: (err: any) => {
         toast.error("No pudimos reservar", {
@@ -102,6 +119,45 @@ export default function Reservar() {
       },
     },
   });
+
+  const [postReserva, setPostReserva] = useState<any | null>(null);
+
+  const isAdminAnonymousBooking = Boolean(user?.rol === "admin" && mode === "anonimo");
+
+  const getAdminContactPhone = async () => {
+    if (adminContactPhone) return adminContactPhone;
+    const apiBase = import.meta.env.VITE_API_BASE_URL || "";
+    const r = await fetch(`${apiBase}/api/usuario/admin-publicos`);
+    if (r.ok) {
+      const j = await r.json();
+      const phone = j.whatsappNormalizado || j.whatsapp || j.telefono || import.meta.env.VITE_WHATSAPP_ADMIN_PHONE || null;
+      setAdminContactPhone(phone);
+      return phone;
+    }
+    const fallback = import.meta.env.VITE_WHATSAPP_ADMIN_PHONE || null;
+    setAdminContactPhone(fallback);
+    return fallback;
+  };
+
+  const getPostReservaWhatsAppTarget = async () => {
+    if (!postReserva) return null;
+
+    if (isAdminAnonymousBooking) {
+      return normalizeWhatsAppPhone(postReserva.clienteTelefono || postReserva.clienteTelefonoNormalized);
+    }
+
+    return getAdminContactPhone();
+  };
+
+  const getPostReservaWhatsAppMessage = () => {
+    if (!postReserva) return "";
+
+    if (isAdminAnonymousBooking) {
+      return `Hola ${postReserva.clienteNombre || ""}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(postReserva.fecha)} a las ${postReserva.hora}. Te esperamos.`;
+    }
+
+    return `Hola NazaBarber, acabo de reservar un turno.\n\nNombre: ${postReserva.clienteNombre || ""}\nTurno: ${postReserva.fecha} a las ${postReserva.hora}\nTeléfono: ${postReserva.clienteTelefono || ""}\n\nGracias.`;
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<string, Turno[]>();
@@ -117,7 +173,7 @@ export default function Reservar() {
 
   function confirmar() {
     if (!selectedTurno) return;
-    if (user && mode === "cuenta") {
+    if (token && (mode === "cuenta" || !user || user.rol !== "admin")) {
       reservarCliente.mutate({ data: { turnoId: selectedTurno.id } });
     } else {
       if (!nombre.trim()) {
@@ -129,7 +185,7 @@ export default function Reservar() {
           turnoId: selectedTurno.id,
           nombre: nombre.trim(),
           email: email.trim() || undefined,
-          telefono: telefono.trim() || undefined,
+          whatsapp: whatsapp.trim() || undefined,
         },
       });
     }
@@ -237,17 +293,13 @@ export default function Reservar() {
               </div>
             ) : null
           ) : (
-            <div className="text-sm text-muted-foreground">
-              ¿Ya tenés cuenta?{" "}
-              <Link
-                href="/login"
-                className="text-primary hover:underline"
-                onClick={() => setSelectedTurno(null)}
-              >
-                Iniciá sesión
-              </Link>{" "}
-              para llevar tu historial.
-            </div>
+                <div className="text-sm text-muted-foreground">
+                  ¿Ya tenés cuenta?{" "}
+                  <Link href="/login" onClick={() => setSelectedTurno(null)}>
+                    Iniciá sesión
+                  </Link>{" "}
+                  para llevar tu historial.
+                </div>
           )}
 
           {(!user || mode === "anonimo") && (
@@ -264,7 +316,7 @@ export default function Reservar() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="email">Email (opcional)</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -274,12 +326,12 @@ export default function Reservar() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="telefono">Teléfono (opcional)</Label>
+                  <Label htmlFor="whatsapp">WhatsApp (obligatorio)</Label>
                   <Input
-                    id="telefono"
-                    value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    data-testid="input-anon-tel"
+                    id="whatsapp"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    data-testid="input-anon-whatsapp"
                   />
                 </div>
               </div>
@@ -312,6 +364,34 @@ export default function Reservar() {
           </div>
         </DialogContent>
       </Dialog>
+      {postReserva && (
+        <div className="mx-auto max-w-2xl mt-6">
+          <Glass className="p-4 flex items-center justify-between">
+            <div>
+              <div className="font-medium">Reserva confirmada</div>
+              <div className="text-xs text-muted-foreground">{fechaLarga(postReserva.fecha)} · {postReserva.hora} hs</div>
+            </div>
+            <div>
+              <Button
+                  onClick={async () => {
+                    try {
+                      const phone = await getPostReservaWhatsAppTarget();
+                      const msgPlain = getPostReservaWhatsAppMessage();
+                      const url = phone ? buildWhatsAppUrl(phone, msgPlain) : null;
+                      if (url) window.open(url, '_blank', 'noopener');
+                      else toast.error(isAdminAnonymousBooking ? 'No se encontró número de contacto del cliente' : 'No se encontró número de contacto para Naza');
+                    } catch (e) {
+                      console.error(e);
+                      toast.error(isAdminAnonymousBooking ? 'No pudimos obtener el teléfono del cliente' : 'No pudimos obtener el contacto de Naza');
+                    }
+                  }}
+                >
+                  {isAdminAnonymousBooking ? "Enviar WhatsApp al cliente" : "Enviar WhatsApp a Naza"}
+                </Button>
+            </div>
+          </Glass>
+        </div>
+      )}
     </div>
   );
 }

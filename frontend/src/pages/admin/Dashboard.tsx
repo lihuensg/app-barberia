@@ -15,6 +15,7 @@ import {
   ArrowRight,
   X,
 } from "lucide-react";
+import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/utils/whatsapp";
 
 function parseTurnoDateTime(fecha?: string, hora?: string): Date | null {
   if (!fecha || !hora) return null;
@@ -143,31 +144,55 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-2">
               {upcomingAppointments.map((t: Turno) => (
+                (() => {
+                  const clienteId = t.clienteId ?? (t as any).cliente_id ?? null;
+                  const clienteNombre = t.clienteNombre ?? (t as any).cliente_nombre ?? null;
+                  const clienteTelefono = t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
+                  const clienteFoto = t.clienteFoto ?? (t as any).cliente_foto ?? null;
+                  const esAnonimo = Boolean((t.anonimo ?? (t as any).anonimo) && !clienteId);
+
+                  return (
                 <div
                   key={t.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-white/5"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={t.clienteFoto ?? undefined} />
+                      <AvatarImage src={clienteFoto ?? undefined} />
                       <AvatarFallback className="bg-primary/15 text-primary text-xs">
-                        {inicialesDe(t.clienteNombre ?? "?")}
+                        {inicialesDe(clienteNombre ?? "?")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="text-sm truncate">{t.clienteNombre}</div>
+                      <div className="text-sm truncate">{clienteNombre ?? "Sin asignar"}</div>
                       <div className="text-xs text-muted-foreground truncate">
                         {fechaLarga(t.fecha)} · {t.hora} hs
                       </div>
                     </div>
                   </div>
 
-                  {t.anonimo && (
-                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      sin cuenta
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {esAnonimo && (
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        sin cuenta
+                      </span>
+                    )}
+                    {clienteTelefono && normalizeWhatsAppPhone(clienteTelefono) && (
+                      <button
+                        onClick={() => {
+                          const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
+                          const url = buildWhatsAppUrl(clienteTelefono, msg);
+                          if (url) window.open(url, '_blank', 'noopener');
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        WhatsApp
+                      </button>
+                    )}
+                  </div>
                 </div>
+                  );
+                })()
               ))}
             </div>
           )}

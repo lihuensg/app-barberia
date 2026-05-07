@@ -12,14 +12,16 @@ async function buscarPorId(id) {
     });
 }
 
-async function crearCliente({ nombre, email, passwordHash, telefono, instagram }) {
+async function crearCliente({ nombre, email, passwordHash, whatsapp, telefono, instagram }) {
     return prisma.usuario.create({
         data: {
             nombre,
             email,
             passwordHash,
-            telefono,
-            instagram,
+            // Guardamos whatsapp en el campo dedicado; conservar telefono si viene (deprecated)
+            whatsapp: whatsapp || telefono || undefined,
+            telefono: telefono || undefined,
+            instagram: instagram || undefined,
             rol: 'cliente'
         }
     });
@@ -31,7 +33,9 @@ async function actualizarPerfil(id, { nombre, telefono, instagram }) {
         data: {
             nombre: nombre || undefined,
             telefono: telefono || undefined,
-            instagram: instagram || undefined
+            instagram: instagram || undefined,
+            // Permitir que el admin guarde campo whatsapp si existe en el schema
+            whatsapp: arguments[1] && arguments[1].whatsapp !== undefined ? arguments[1].whatsapp : undefined
         }
     });
 }
@@ -53,6 +57,8 @@ async function obtenerAdminPublico() {
         select: {
             id: true,
             nombre: true,
+            email: true,
+            telefono: true,
             foto: true,
             bio: true,
             instagram: true,

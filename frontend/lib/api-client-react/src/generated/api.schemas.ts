@@ -25,6 +25,7 @@ export interface Usuario {
   nombre: string;
   email: string;
   telefono?: string | null;
+  whatsapp?: string | null;
   instagram?: string | null;
   foto?: string | null;
   rol: UsuarioRol;
@@ -39,8 +40,7 @@ export interface RegistrarBody {
   nombre: string;
   email: string;
   password: string;
-  telefono?: string;
-  instagram?: string;
+  whatsapp?: string;
 }
 
 export interface LoginBody {
@@ -58,7 +58,7 @@ export interface ResetPasswordBody {
 
 export interface UpdateMeBody {
   nombre?: string;
-  telefono?: string;
+  whatsapp?: string;
   instagram?: string;
 }
 
@@ -71,6 +71,7 @@ export interface AdminPublico {
   nombre: string;
   instagram?: string | null;
   whatsapp?: string | null;
+  whatsappNormalizado?: string | null;
   foto?: string | null;
   bio?: string | null;
 }
@@ -80,6 +81,7 @@ export interface ClienteResumen {
   nombre: string;
   email: string;
   telefono?: string | null;
+  whatsapp?: string | null;
   instagram?: string | null;
   foto?: string | null;
   totalTurnos: number;
@@ -105,6 +107,8 @@ export interface Turno {
   clienteNombre?: string | null;
   clienteEmail?: string | null;
   clienteTelefono?: string | null;
+  clienteWhatsapp?: string | null;
+  clienteWhatsappNormalizado?: string | null;
   clienteFoto?: string | null;
   anonimo?: boolean;
 }
@@ -113,7 +117,7 @@ export interface ReservaAnonimaBody {
   turnoId: number;
   nombre: string;
   email?: string;
-  telefono?: string;
+  whatsapp?: string;
 }
 
 export interface ReservaClienteBody {

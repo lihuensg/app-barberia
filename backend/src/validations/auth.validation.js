@@ -9,8 +9,7 @@ const registerBodySchema = z.object({
     nombre: nombreSchema,
     email: emailSchema,
     password: passwordSchema,
-    telefono: z.string().trim().max(30).optional(),
-    instagram: z.string().trim().max(80).optional(),
+    whatsapp: z.string().trim().max(30),
 }).strict();
 
 const loginBodySchema = z.object({

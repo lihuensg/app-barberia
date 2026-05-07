@@ -1,5 +1,4 @@
-const prisma = require('../config/prisma');
-const { ENV } = require('../config/env');
+const usuarioService = require('../services/usuario.service');
 
 /**
  * GET /api/admin/audit-logs
@@ -47,3 +46,24 @@ async function getAuditLogs(req, res) {
 module.exports = {
     getAuditLogs
 };
+
+async function getContact(req, res) {
+    try {
+        const admin = await usuarioService.getAdminPublico();
+
+        if (!admin) return res.status(404).json({ message: 'No hay admin configurado' });
+
+        // admin comes already shaped: nombre, email, telefono, whatsapp, instagram, whatsappNormalizado
+        res.json({
+            nombre: admin.nombre,
+            telefono: admin.telefono || null,
+            telefono_normalizado: admin.whatsappNormalizado || null,
+            email: admin.email || null,
+        });
+    } catch (error) {
+        console.error('❌ Error getContact:', error.message || error);
+        res.status(500).json({ message: 'Error al obtener contacto del admin' });
+    }
+}
+
+module.exports.getContact = getContact;

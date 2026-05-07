@@ -8,16 +8,21 @@
  */
 function sanitizeUser(usuario) {
     if (!usuario) return null;
-
     const { passwordHash, ...safe } = usuario;
+    const { normalizeTelefono } = require('./../utils/turnosBusiness');
+
+    const whatsappRaw = safe.whatsapp || safe.telefono || null;
+    const whatsappNormalizado = normalizeTelefono(whatsappRaw);
 
     return {
         id: safe.id,
         nombre: safe.nombre,
         email: safe.email,
+        // Mantener telefono por compatibilidad pero preferir whatsapp
         telefono: safe.telefono || null,
         instagram: safe.instagram || null,
-        whatsapp: safe.whatsapp || null,
+        whatsapp: safe.whatsapp || safe.telefono || null,
+        whatsappNormalizado: whatsappNormalizado || null,
         bio: safe.bio || null,
         foto: safe.foto || null,
         rol: safe.rol,
@@ -55,9 +60,23 @@ function sanitizeTurno(turno) {
     }
 
     // Otros campos opcionales
+    const { normalizeTelefono } = require('./../utils/turnosBusiness');
+
     if (turno.clienteNombre) result.clienteNombre = turno.clienteNombre;
     if (turno.clienteEmail) result.clienteEmail = turno.clienteEmail;
-    if (turno.clienteTelefono) result.clienteTelefono = turno.clienteTelefono;
+    if (turno.clienteTelefono) {
+        result.clienteTelefono = turno.clienteTelefono;
+        result.whatsappCliente = turno.clienteTelefono; // alias
+        const normalized = normalizeTelefono(turno.clienteTelefono);
+        result.clienteTelefonoNormalized = normalized || null;
+        result.whatsappClienteNormalizado = normalized || null;
+    }
+    // También manejar campos anonimos si vienen en snake_case
+    if (turno.anonimo_telefono) {
+        result.whatsappCliente = result.whatsappCliente || turno.anonimo_telefono;
+        const normalized2 = normalizeTelefono(turno.anonimo_telefono);
+        result.whatsappClienteNormalizado = result.whatsappClienteNormalizado || normalized2 || null;
+    }
 
     return result;
 }

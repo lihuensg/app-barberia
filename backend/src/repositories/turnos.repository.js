@@ -76,7 +76,7 @@ function buildMinBookingWhere(now = new Date()) {
     };
 }
 
-function buildActiveFutureWhere({ usuarioId, anonimoTelefono }) {
+function buildActiveFutureWhere({ usuarioId, anonimoTelefono, anonimoTelefonoNormalizado }) {
     const where = {
         estado: { in: ACTIVE_STATES },
         fecha: { gte: getTodayUtcDateOnly() },
@@ -88,6 +88,10 @@ function buildActiveFutureWhere({ usuarioId, anonimoTelefono }) {
 
     if (anonimoTelefono) {
         where.anonimoTelefono = anonimoTelefono;
+    }
+
+    if (anonimoTelefonoNormalizado) {
+        where.anonimoTelefonoNormalizado = anonimoTelefonoNormalizado;
     }
 
     return where;
@@ -148,7 +152,7 @@ async function findActiveFutureAppointmentByPhone(telefono, client = prisma) {
     }
 
     const turnos = await client.turno.findMany({
-        where: buildActiveFutureWhere({ anonimoTelefono: normalizedTelefono }),
+            where: buildActiveFutureWhere({ anonimoTelefono: normalizedTelefono, anonimoTelefonoNormalizado: normalizedTelefono }),
         orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
     });
 
@@ -408,7 +412,8 @@ async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono, ip = n
             estado: 'reservado',
             anonimoNombre: nombre,
             anonimoEmail: email ? String(email).toLowerCase() : null,
-            anonimoTelefono: normalizedTelefono,
+            anonimoTelefono: telefono ? String(telefono).trim() : null,
+            anonimoTelefonoNormalizado: normalizedTelefono,
             usuarioId: null,
         },
     });
@@ -470,7 +475,8 @@ async function asignarTurnoAdminAnonimo({ turnoId, nombre, email, telefono }) {
                 usuarioId: null,
                 anonimoNombre: nombre,
                 anonimoEmail: email ? String(email).toLowerCase() : null,
-                anonimoTelefono: telefono ? normalizeTelefono(telefono) : null,
+                anonimoTelefono: telefono ? String(telefono).trim() : null,
+                anonimoTelefonoNormalizado: telefono ? normalizeTelefono(telefono) : null,
             },
         });
 
@@ -803,6 +809,7 @@ async function getAdminTurnos({
                     nombre: true,
                     email: true,
                     telefono: true,
+                    foto: true,
                 },
             },
         },
@@ -816,9 +823,12 @@ async function getAdminTurnos({
 
     return turnos.map((t) => ({
         ...t,
-        cliente_nombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
-        cliente_email: t.usuario?.email ?? t.anonimoEmail ?? null,
-        cliente_telefono: t.usuario?.telefono ?? t.anonimoTelefono ?? null,
+        clienteId: t.usuarioId ?? null,
+        clienteNombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
+        clienteEmail: t.usuario?.email ?? t.anonimoEmail ?? null,
+        clienteTelefono: t.usuario?.telefono ?? t.anonimoTelefono ?? t.anonimoTelefonoNormalizado ?? null,
+        clienteFoto: t.usuario?.foto ?? null,
+        anonimo: !t.usuarioId && !!t.anonimoNombre,
         usuario: undefined,
     }));
 }
@@ -1046,7 +1056,16 @@ async function getMetrics() {
         clientsTotal,
         postsTotal,
         // Próximos turnos
-        upcomingAppointments: proximosTurnos,
+        upcomingAppointments: proximosTurnos.map((t) => ({
+            ...t,
+            clienteId: t.usuarioId ?? null,
+            clienteNombre: t.usuario?.nombre ?? t.anonimoNombre ?? null,
+            clienteEmail: t.usuario?.email ?? t.anonimoEmail ?? null,
+            clienteTelefono: t.usuario?.telefono ?? t.anonimoTelefono ?? t.anonimoTelefonoNormalizado ?? null,
+            clienteFoto: t.usuario?.foto ?? null,
+            anonimo: !t.usuarioId && !!t.anonimoNombre,
+            usuario: undefined,
+        })),
     };
 
         }

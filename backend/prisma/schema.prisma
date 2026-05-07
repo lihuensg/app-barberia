@@ -54,6 +54,7 @@ model Turno {
   anonimoNombre   String?      @map("anonimo_nombre")
   anonimoEmail    String?      @map("anonimo_email")
   anonimoTelefono String?      @map("anonimo_telefono")
+  anonimoTelefonoNormalizado String? @map("anonimo_telefono_normalizado")
 
   createdAt       DateTime     @default(now()) @map("created_at")
 

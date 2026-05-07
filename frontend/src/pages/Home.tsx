@@ -102,10 +102,10 @@ export default function Home() {
                       <Instagram className="h-3.5 w-3.5" /> @{admin.instagram.replace(/^@/, "")}
                     </a>
                   )}
-                  {admin?.whatsapp && (
+                  { (admin?.whatsappNormalizado || admin?.whatsapp) && (
                     <a
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary hover-elevate"
-                      href={`https://wa.me/${admin.whatsapp.replace(/[^0-9]/g, "")}`}
+                      href={`https://wa.me/${(admin?.whatsappNormalizado || admin?.whatsapp || "").toString().replace(/[^0-9]/g, "")}`}
                       target="_blank"
                       rel="noreferrer"
                     >

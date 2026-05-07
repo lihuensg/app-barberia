@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { fechaLarga, inicialesDe } from "@/lib/format";
+import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/utils/whatsapp";
 import { cn } from "@/lib/utils";
 import { Scissors, X, Phone, Mail } from "lucide-react";
 
@@ -170,6 +171,11 @@ export default function AdminReservas() {
       ) : (
         <div className="space-y-3">
           {turnos!.map((t) => {
+            const clienteId = t.clienteId ?? (t as any).cliente_id ?? null;
+            const clienteNombre = t.clienteNombre ?? (t as any).cliente_nombre ?? null;
+            const clienteEmail = t.clienteEmail ?? (t as any).cliente_email ?? null;
+            const clienteTelefono = t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
+            const clienteFoto = t.clienteFoto ?? (t as any).cliente_foto ?? null;
             const dateTime = parseTurnoDateTime(t.fecha, t.hora);
             const isFuture = dateTime ? dateTime.getTime() > Date.now() : false;
             return (
@@ -182,30 +188,30 @@ export default function AdminReservas() {
                 <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 md:justify-between">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <Avatar className="h-10 sm:h-11 w-10 sm:w-11 shrink-0">
-                      <AvatarImage src={t.clienteFoto ?? undefined} />
+                      <AvatarImage src={clienteFoto ?? undefined} />
                       <AvatarFallback className="bg-primary/15 text-primary text-xs">
-                        {inicialesDe(t.clienteNombre ?? "?")}
+                        {inicialesDe(clienteNombre ?? "?")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="font-medium truncate text-sm">
-                        {t.clienteNombre ?? "Sin asignar"}
+                        {clienteNombre ?? "Sin asignar"}
                       </div>
                       <div className="text-xs text-muted-foreground truncate">
                         {fechaLarga(t.fecha)} · {t.hora} hs
                       </div>
                       <div className="flex flex-wrap gap-2 mt-1 text-[11px] text-muted-foreground">
-                        {t.clienteEmail && (
+                        {clienteEmail && (
                           <span className="inline-flex items-center gap-0.5 min-w-0 truncate">
-                            <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{t.clienteEmail}</span>
+                            <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{clienteEmail}</span>
                           </span>
                         )}
-                        {t.clienteTelefono && (
+                        {clienteTelefono && (
                           <span className="inline-flex items-center gap-0.5 min-w-0 truncate">
-                            <Phone className="h-3 w-3 shrink-0" /> <span className="truncate">{t.clienteTelefono}</span>
+                            <Phone className="h-3 w-3 shrink-0" /> <span className="truncate">{clienteTelefono}</span>
                           </span>
                         )}
-                        {t.anonimo && (
+                        {!clienteId && (t.anonimo ?? (t as any).anonimo === true) && (
                           <span className="text-[10px] uppercase tracking-wider whitespace-nowrap">
                             sin cuenta
                           </span>
@@ -242,6 +248,21 @@ export default function AdminReservas() {
                         >
                           <X className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Cancelar</span>
                         </Button>
+                        {clienteTelefono && normalizeWhatsAppPhone(clienteTelefono) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
+                              const url = buildWhatsAppUrl(clienteTelefono, msg);
+                              if (url) window.open(url, '_blank', 'noopener');
+                            }}
+                            className="shrink-0 text-xs sm:text-sm"
+                            data-testid={`button-whatsapp-admin-${t.id}`}
+                          >
+                            <Phone className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">WhatsApp</span>
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
