@@ -6,8 +6,10 @@ function serializeTurno(t) {
     const clienteNombre = t.clienteNombre ?? t.cliente_nombre ?? t.usuario?.nombre ?? t.anonimoNombre ?? null;
     const clienteEmail = t.clienteEmail ?? t.cliente_email ?? t.usuario?.email ?? t.anonimoEmail ?? null;
     const clienteTelefono = t.clienteTelefono ?? t.cliente_telefono ?? t.usuario?.telefono ?? t.anonimoTelefono ?? null;
+    const clienteWhatsapp = t.clienteWhatsapp ?? t.cliente_whatsapp ?? t.usuario?.whatsapp ?? t.anonimoTelefono ?? null;
     const clienteFoto = t.clienteFoto ?? t.cliente_foto ?? t.usuario?.foto ?? null;
     const telefonoNormalizado = t.clienteTelefonoNormalized ?? t.cliente_telefono_normalizado ?? t.anonimoTelefonoNormalizado ?? null;
+    const whatsappNormalizado = t.clienteWhatsappNormalizado ?? t.cliente_whatsapp_normalizado ?? telefonoNormalizado;
 
     return {
         id: t.id,
@@ -21,6 +23,8 @@ function serializeTurno(t) {
         clienteId,
         clienteNombre,
         clienteEmail,
+        clienteWhatsapp,
+        clienteWhatsappNormalizado: whatsappNormalizado,
         clienteTelefono,
         clienteTelefonoNormalized: telefonoNormalizado,
         clienteFoto,

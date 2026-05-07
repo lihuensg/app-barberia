@@ -22,8 +22,8 @@ export default function Perfil() {
   const queryClient = useQueryClient();
   const fileInput = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState(user?.nombre ?? "");
-  const [instagram, setInstagram] = useState(user?.instagram ?? "");
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? "");
+  const [instagram, setInstagram] = useState(user?.instagram ?? "");
 
   const updateMut = useUpdateMe({
     mutation: {

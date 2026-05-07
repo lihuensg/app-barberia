@@ -143,7 +143,7 @@ export default function Reservar() {
     if (!postReserva) return null;
 
     if (isAdminAnonymousBooking) {
-      return normalizeWhatsAppPhone(postReserva.clienteTelefono || postReserva.clienteTelefonoNormalized);
+      return normalizeWhatsAppPhone(postReserva.clienteWhatsapp || postReserva.clienteWhatsappNormalizado || postReserva.clienteTelefono || postReserva.clienteTelefonoNormalized);
     }
 
     return getAdminContactPhone();
@@ -153,10 +153,10 @@ export default function Reservar() {
     if (!postReserva) return "";
 
     if (isAdminAnonymousBooking) {
-      return `Hola ${postReserva.clienteNombre || ""}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(postReserva.fecha)} a las ${postReserva.hora}. Te esperamos.`;
+      return `Hola ${postReserva.clienteNombre || ""}, te confirmamos tu turno en Naza para el ${fechaLarga(postReserva.fecha)} a las ${postReserva.hora}. Te esperamos.`;
     }
 
-    return `Hola NazaBarber, acabo de reservar un turno.\n\nNombre: ${postReserva.clienteNombre || ""}\nTurno: ${postReserva.fecha} a las ${postReserva.hora}\nTeléfono: ${postReserva.clienteTelefono || ""}\n\nGracias.`;
+    return `Hola Naza, acabo de reservar un turno.\n\nNombre: ${postReserva.clienteNombre || ""}\nTurno: ${postReserva.fecha} a las ${postReserva.hora}\nWhatsApp: ${postReserva.clienteWhatsapp || postReserva.clienteTelefono || ""}\n\nGracias.`;
   };
 
   const grouped = useMemo(() => {

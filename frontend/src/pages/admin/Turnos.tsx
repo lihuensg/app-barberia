@@ -55,10 +55,10 @@ export default function AdminTurnos() {
   const [asignar, setAsignar] = useState<{ id: number; fecha: string; hora: string } | null>(null);
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteEmail, setClienteEmail] = useState("");
-  const [clienteTelefono, setClienteTelefono] = useState("");
+  const [clienteWhatsapp, setClienteWhatsapp] = useState("");
   const [ultimaAsignacion, setUltimaAsignacion] = useState<{
     nombre: string;
-    telefono: string;
+    whatsapp: string;
     fecha: string;
     hora: string;
   } | null>(null);
@@ -113,8 +113,8 @@ export default function AdminTurnos() {
     e.preventDefault();
     if (!asignar) return;
 
-    const telefonoNormalizado = normalizeWhatsAppPhone(clienteTelefono);
-    if (!telefonoNormalizado) {
+    const whatsappNormalizado = normalizeWhatsAppPhone(clienteWhatsapp);
+    if (!whatsappNormalizado) {
       toast.error("Ingresá un número de WhatsApp válido.");
       return;
     }
@@ -132,7 +132,7 @@ export default function AdminTurnos() {
           turnoId: asignar.id,
           nombre: clienteNombre.trim(),
           email: clienteEmail.trim() || undefined,
-          telefono: clienteTelefono.trim(),
+          whatsapp: clienteWhatsapp.trim(),
         }),
       });
 
@@ -144,14 +144,14 @@ export default function AdminTurnos() {
       toast.success("Turno asignado al cliente");
       setUltimaAsignacion({
         nombre: clienteNombre.trim(),
-        telefono: telefonoNormalizado,
+        whatsapp: whatsappNormalizado,
         fecha: asignar.fecha,
         hora: asignar.hora,
       });
       setAsignar(null);
       setClienteNombre("");
       setClienteEmail("");
-      setClienteTelefono("");
+      setClienteWhatsapp("");
       invalidateAll();
     } catch (error: any) {
       toast.error("No pudimos asignar el turno", { description: error?.message });
@@ -203,8 +203,8 @@ export default function AdminTurnos() {
             type="button"
             variant="outline"
             onClick={() => {
-              const msg = `Hola ${ultimaAsignacion.nombre}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(ultimaAsignacion.fecha)} a las ${ultimaAsignacion.hora}. Te esperamos.`;
-              const url = buildWhatsAppUrl(ultimaAsignacion.telefono, msg);
+              const msg = `Hola ${ultimaAsignacion.nombre}, te confirmamos tu turno en Naza para el ${fechaLarga(ultimaAsignacion.fecha)} a las ${ultimaAsignacion.hora}. Te esperamos.`;
+              const url = buildWhatsAppUrl(ultimaAsignacion.whatsapp, msg);
               if (url) window.open(url, "_blank", "noopener");
             }}
             className="shrink-0"
@@ -483,14 +483,14 @@ export default function AdminTurnos() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cliente-telefono">WhatsApp</Label>
+              <Label htmlFor="cliente-whatsapp">WhatsApp</Label>
               <Input
-                id="cliente-telefono"
-                value={clienteTelefono}
-                onChange={(e) => setClienteTelefono(e.target.value)}
+                id="cliente-whatsapp"
+                value={clienteWhatsapp}
+                onChange={(e) => setClienteWhatsapp(e.target.value)}
                 placeholder="+54 9 343 555 1234"
                 required
-                data-testid="input-asignar-telefono"
+                data-testid="input-asignar-whatsapp"
               />
             </div>
 

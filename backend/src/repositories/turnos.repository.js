@@ -217,7 +217,7 @@ async function findActiveFutureAppointmentsByUser(usuarioId, client = prisma) {
         orderBy: [{ fecha: 'asc' }, { hora: 'asc' }],
         include: {
             usuario: {
-                select: { nombre: true, email: true, telefono: true, foto: true },
+                select: { nombre: true, email: true, telefono: true, whatsapp: true, foto: true },
             },
         },
     });
@@ -428,7 +428,7 @@ async function reservarAnonimoAtomico({ turnoId, nombre, email, telefono, ip = n
         where: { id },
         include: {
             usuario: {
-                select: { nombre: true, email: true, telefono: true, foto: true },
+                select: { nombre: true, email: true, telefono: true, whatsapp: true, foto: true },
             },
         },
     });
@@ -556,7 +556,7 @@ async function reservarClienteAtomico({ turnoId, usuarioId }) {
             where: { id },
             include: {
                 usuario: {
-                    select: { nombre: true, email: true, telefono: true, foto: true },
+                    select: { nombre: true, email: true, telefono: true, whatsapp: true, foto: true },
                 },
             },
         });
@@ -584,7 +584,7 @@ async function cancelarCliente(usuarioId, turnoId, { motivo } = {}) {
         where: { id: parseInt(turnoId, 10) },
         include: {
             usuario: {
-                select: { nombre: true, email: true, telefono: true },
+                    select: { nombre: true, email: true, telefono: true, whatsapp: true },
             },
         },
     });
@@ -658,7 +658,7 @@ async function cancelarAdmin(turnoId, { motivo } = {}) {
         where: { id: parseInt(turnoId, 10) },
         include: {
             usuario: {
-                select: { nombre: true, email: true, telefono: true },
+                    select: { nombre: true, email: true, telefono: true, whatsapp: true },
             },
         },
     });

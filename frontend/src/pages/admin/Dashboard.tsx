@@ -147,7 +147,7 @@ export default function AdminDashboard() {
                 (() => {
                   const clienteId = t.clienteId ?? (t as any).cliente_id ?? null;
                   const clienteNombre = t.clienteNombre ?? (t as any).cliente_nombre ?? null;
-                  const clienteTelefono = t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
+                  const clienteWhatsapp = t.clienteWhatsapp ?? (t as any).cliente_whatsapp ?? t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
                   const clienteFoto = t.clienteFoto ?? (t as any).cliente_foto ?? null;
                   const esAnonimo = Boolean((t.anonimo ?? (t as any).anonimo) && !clienteId);
 
@@ -177,11 +177,11 @@ export default function AdminDashboard() {
                         sin cuenta
                       </span>
                     )}
-                    {clienteTelefono && normalizeWhatsAppPhone(clienteTelefono) && (
+                    {clienteWhatsapp && normalizeWhatsAppPhone(clienteWhatsapp) && (
                       <button
                         onClick={() => {
-                          const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
-                          const url = buildWhatsAppUrl(clienteTelefono, msg);
+                          const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en Naza para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
+                          const url = buildWhatsAppUrl(clienteWhatsapp, msg);
                           if (url) window.open(url, '_blank', 'noopener');
                         }}
                         className="text-xs text-primary hover:underline"

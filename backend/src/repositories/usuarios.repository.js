@@ -18,7 +18,6 @@ async function crearCliente({ nombre, email, passwordHash, whatsapp, telefono, i
             nombre,
             email,
             passwordHash,
-            // Guardamos whatsapp en el campo dedicado; conservar telefono si viene (deprecated)
             whatsapp: whatsapp || telefono || undefined,
             telefono: telefono || undefined,
             instagram: instagram || undefined,
@@ -27,15 +26,14 @@ async function crearCliente({ nombre, email, passwordHash, whatsapp, telefono, i
     });
 }
 
-async function actualizarPerfil(id, { nombre, telefono, instagram }) {
+async function actualizarPerfil(id, { nombre, whatsapp, telefono, instagram }) {
     return prisma.usuario.update({
         where: { id: parseInt(id) },
         data: {
             nombre: nombre || undefined,
+            whatsapp: whatsapp !== undefined ? whatsapp : (telefono || undefined),
             telefono: telefono || undefined,
             instagram: instagram || undefined,
-            // Permitir que el admin guarde campo whatsapp si existe en el schema
-            whatsapp: arguments[1] && arguments[1].whatsapp !== undefined ? arguments[1].whatsapp : undefined
         }
     });
 }
@@ -59,6 +57,7 @@ async function obtenerAdminPublico() {
             nombre: true,
             email: true,
             telefono: true,
+            whatsapp: true,
             foto: true,
             bio: true,
             instagram: true,
@@ -80,6 +79,7 @@ async function listarClientes({ search, page = 1, limit = 20 }) {
                     { nombre: { contains: search, mode: 'insensitive' } },
                     { email: { contains: search, mode: 'insensitive' } },
                     { telefono: { contains: search, mode: 'insensitive' } },
+                    { whatsapp: { contains: search, mode: 'insensitive' } },
                     { instagram: { contains: search, mode: 'insensitive' } }
                 ]
             } : {})
@@ -92,6 +92,7 @@ async function listarClientes({ search, page = 1, limit = 20 }) {
             nombre: true,
             email: true,
             telefono: true,
+            whatsapp: true,
             instagram: true,
             foto: true,
             createdAt: true,
@@ -104,6 +105,7 @@ async function listarClientes({ search, page = 1, limit = 20 }) {
         nombre: c.nombre,
         email: c.email,
         telefono: c.telefono,
+        whatsapp: c.whatsapp || c.telefono || null,
         instagram: c.instagram,
         foto: c.foto,
         totalTurnos: c._count.turnos

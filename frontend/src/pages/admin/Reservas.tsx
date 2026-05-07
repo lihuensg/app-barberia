@@ -174,7 +174,7 @@ export default function AdminReservas() {
             const clienteId = t.clienteId ?? (t as any).cliente_id ?? null;
             const clienteNombre = t.clienteNombre ?? (t as any).cliente_nombre ?? null;
             const clienteEmail = t.clienteEmail ?? (t as any).cliente_email ?? null;
-            const clienteTelefono = t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
+            const clienteWhatsapp = t.clienteWhatsapp ?? (t as any).cliente_whatsapp ?? t.clienteTelefono ?? (t as any).cliente_telefono ?? null;
             const clienteFoto = t.clienteFoto ?? (t as any).cliente_foto ?? null;
             const dateTime = parseTurnoDateTime(t.fecha, t.hora);
             const isFuture = dateTime ? dateTime.getTime() > Date.now() : false;
@@ -206,9 +206,9 @@ export default function AdminReservas() {
                             <Mail className="h-3 w-3 shrink-0" /> <span className="truncate">{clienteEmail}</span>
                           </span>
                         )}
-                        {clienteTelefono && (
+                        {clienteWhatsapp && (
                           <span className="inline-flex items-center gap-0.5 min-w-0 truncate">
-                            <Phone className="h-3 w-3 shrink-0" /> <span className="truncate">{clienteTelefono}</span>
+                            <Phone className="h-3 w-3 shrink-0" /> <span className="truncate">{clienteWhatsapp}</span>
                           </span>
                         )}
                         {!clienteId && (t.anonimo ?? (t as any).anonimo === true) && (
@@ -248,13 +248,13 @@ export default function AdminReservas() {
                         >
                           <X className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Cancelar</span>
                         </Button>
-                        {clienteTelefono && normalizeWhatsAppPhone(clienteTelefono) && (
+                        {clienteWhatsapp && normalizeWhatsAppPhone(clienteWhatsapp) && (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en NazaBarber para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
-                              const url = buildWhatsAppUrl(clienteTelefono, msg);
+                              const msg = `Hola ${clienteNombre ?? ''}, te confirmamos tu turno en Naza para el ${fechaLarga(t.fecha)} a las ${t.hora}. Te esperamos.`;
+                              const url = buildWhatsAppUrl(clienteWhatsapp, msg);
                               if (url) window.open(url, '_blank', 'noopener');
                             }}
                             className="shrink-0 text-xs sm:text-sm"

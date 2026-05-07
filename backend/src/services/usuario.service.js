@@ -18,9 +18,9 @@ async function updateMe(usuarioId, data) {
 
     const usuario = await usuariosRepository.actualizarPerfil(usuarioId, {
         nombre,
+        whatsapp,
         telefono,
         instagram,
-        whatsapp
     });
 
     return sanitizeUser(usuario);

@@ -64,9 +64,9 @@ export default function AdminClientes() {
                     <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
                       <Mail className="h-3 w-3" /> {c.email}
                     </div>
-                    {c.telefono && (
+                    {c.whatsapp && (
                       <div className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                        <Phone className="h-3 w-3" /> {c.telefono}
+                        <Phone className="h-3 w-3" /> {c.whatsapp}
                       </div>
                     )}
                     {c.instagram && (
