@@ -38,7 +38,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </div>
             <div className="leading-tight">
               <div className="font-serif text-lg tracking-wide group-hover:text-primary transition-colors">
-                Barbería <span className="text-primary">Naza Wicky</span>
+                Barbería <span className="text-primary">NazaWicky</span>
               </div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
                 Premium Cuts
@@ -225,7 +225,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 grid gap-8 md:grid-cols-3">
           <div>
             <div className="font-serif text-xl mb-2">
-            Barbería <span className="text-primary">Naza Wicky</span>
+            Barbería <span className="text-primary">NazaWicky</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Cortes y barbería premium en Arroyo Barú. Reservá tu turno online y
