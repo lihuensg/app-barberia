@@ -38,7 +38,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             </div>
             <div className="leading-tight">
               <div className="font-serif text-lg tracking-wide group-hover:text-primary transition-colors">
-                Naza<span className="text-primary">Barber</span>
+                Barbería <span className="text-primary">Naza Wicky</span>
               </div>
               <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
                 Premium Cuts
@@ -225,10 +225,10 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 grid gap-8 md:grid-cols-3">
           <div>
             <div className="font-serif text-xl mb-2">
-              Naza<span className="text-primary">Barber</span>
+            Barbería <span className="text-primary">Naza Wicky</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Cortes y barbería premium en pleno Palermo. Reservá tu turno online y
+              Cortes y barbería premium en Arroyo Barú. Reservá tu turno online y
               vení a vivir la experiencia.
             </p>
           </div>
@@ -247,14 +247,13 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <div className="text-sm md:justify-self-end">
             <div className="text-foreground font-medium mb-3">Contacto</div>
             <ul className="space-y-2 text-muted-foreground">
-              <li>Lun a Sáb · 10 a 19 hs</li>
-              <li>Palermo, CABA</li>
-              <li>@nazabarber</li>
+              <li>Lun a Sáb </li>
+              <li>Arroyo Barú, Entre Ríos</li>
             </ul>
           </div>
         </div>
         <div className="border-t border-white/5 py-4 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} NazaBarber · Hecho con detalle
+          © {new Date().getFullYear()} Babería Naza Wicky · Hecho con detalle
         </div>
       </footer>
     </div>

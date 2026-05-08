@@ -33,8 +33,7 @@ export default function Home() {
                 <span className="text-primary">la diferencia.</span>
               </h1>
               <p className="mt-4 sm:mt-6 text-muted-foreground text-base sm:text-lg max-w-md">
-                Cortes, barba y experiencia. Reservá tu turno online y vení a sentir
-                la atención de NazaBarber.
+                Estilo, precisión y buena atención. Reservá tu turno online y vení por tu próximo corte.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <Button asChild size="lg" className="w-full sm:w-auto" data-testid="button-hero-reservar">
@@ -47,13 +46,10 @@ export default function Home() {
                 </Button>
               </div>
               <div className="mt-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
+                
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  10+ años de oficio
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Palermo, CABA
+                  Arroyo Barú, Entre Ríos
                 </div>
               </div>
             </motion.div>
@@ -89,7 +85,7 @@ export default function Home() {
                 <GoldDivider />
                 <p className="mt-6 text-muted-foreground">
                   {admin?.bio ??
-                    "Cortes clásicos y modernos, barba esculpida y atención personalizada en un ambiente cálido."}
+                    "Cortes clásicos, modernos y en tendencia, más barba perfilada para que salgas con tu mejor estilo."}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3 text-sm">
                   {admin?.instagram && (
@@ -123,9 +119,9 @@ export default function Home() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-24">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { title: "Corte clásico", desc: "Forma, terminación y producto." },
-            { title: "Barba esculpida", desc: "Diseño, perfilado y aceites." },
-            { title: "Combo completo", desc: "Corte + barba en una sesión." },
+            { title: "Corte personalizado", desc: "Clásico, moderno o en tendencia, adaptado a tu estilo." },
+            { title: "Barba perfilada", desc: "Diseño, contorno y detalle para una terminación impecable." },
+            { title: "Combo completo", desc: "Corte + barba en una experiencia completa." },
           ].map((s, i) => (
             <motion.div
               key={s.title}
