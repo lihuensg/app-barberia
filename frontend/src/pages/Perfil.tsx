@@ -26,7 +26,7 @@ export default function Perfil() {
   const [nombre, setNombre] = useState(user?.nombre ?? "");
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? "");
   const [instagram, setInstagram] = useState(user?.instagram ?? "");
-  const [errors, setErrors] = useState<{ nombre?: string; whatsapp?: string }>({});
+  const [errors, setErrors] = useState<{ nombre?: string; whatsapp?: string; instagram?: string }>({});
   // Si el usuario es admin, Instagram es obligatorio en el perfil
   const isAdmin = user?.rol === 'admin';
 
