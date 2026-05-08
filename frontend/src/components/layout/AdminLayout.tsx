@@ -90,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="md:hidden sticky top-0 z-40 border-b border-white/5 bg-background/80 backdrop-blur-xl">
         <div className="px-4 h-14 flex items-center justify-between">
           <Link href="/admin" className="font-serif text-lg">
-            Naza<span className="text-primary">Barber</span>{" "}
+            Barbería <span className="text-primary">NazaWicky</span>
             <span className="text-xs text-muted-foreground ml-1">admin</span>
           </Link>
           <button
