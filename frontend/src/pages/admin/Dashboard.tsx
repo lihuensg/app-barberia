@@ -47,8 +47,6 @@ const MAIN_STATS = [
   { key: "upcomingReserved" as const, label: "Reservados próximos", icon: CalendarCheck2 },
   { key: "cutToday" as const, label: "Cortados hoy", icon: Scissors },
   { key: "cancelledToday" as const, label: "Cancelados hoy", icon: X },
-  { key: "clientsTotal" as const, label: "Clientes", icon: Users },
-  { key: "postsTotal" as const, label: "Posts", icon: ImageIcon },
 ];
 
 function PeriodMetricCard({ label, value }: { label: string; value: number | string }) {
@@ -99,7 +97,7 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {MAIN_STATS.map((s, i) => {
           const Icon = s.icon;
           const value = data ? (data[s.key as keyof typeof data] as number) || 0 : 0;

@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-5 border-b border-white/5">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="font-serif text-xl tracking-wide">
-              Naza<span className="text-primary">Barber</span>
+              Barbería <span className="text-primary">NazaWicky</span>
             </div>
           </Link>
           <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1">
